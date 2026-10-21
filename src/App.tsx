@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, NavLink, Route, Routes, useLocation } from "react-router-dom";
-import { BookOpenText, ClipboardCheck, FlaskConical, Home as HomeIcon, Languages, ListChecks, Menu, PlayCircle, X } from "lucide-react";
+import { BookOpenText, Calculator, ClipboardCheck, FileText, FlaskConical, Home as HomeIcon, Languages, Layers, ListChecks, Menu, PlayCircle, X } from "lucide-react";
 import Home from "./pages/Home";
 import EnglishHome from "./pages/EnglishHome";
 import Guide from "./pages/Guide";
@@ -18,6 +18,7 @@ import { EjuLecturePage, EjuList } from "./pages/Eju";
 import Checklist from "./pages/Checklist";
 import Exam from "./pages/Exam";
 import { BooksHome, GrammarUnit, IdiomsPage } from "./pages/Books";
+import { JitanDeckPage, JitanHome, KyotsuHome, KyotsuQuestion, MathHome, MathPage } from "./pages/Extra";
 
 const NAV = [
   { to: "/", label: "홈", end: true, icon: HomeIcon },
@@ -25,6 +26,9 @@ const NAV = [
   { to: "/books", label: "영어 교재", icon: BookOpenText },
   { to: "/chem", label: "화학", icon: FlaskConical },
   { to: "/eju", label: "EJU 강의", icon: PlayCircle },
+  { to: "/jitan", label: "암기 카드", icon: Layers },
+  { to: "/kyotsu", label: "공통테스트", icon: FileText },
+  { to: "/math", label: "수학", icon: Calculator },
   { to: "/exam", label: "기출 분석", icon: ClipboardCheck },
   { to: "/check", label: "체크표", icon: ListChecks },
 ];
@@ -143,6 +147,12 @@ export default function App() {
           <Route path="/chem/d/:id" element={<ChemDeck />} />
           <Route path="/eju" element={<EjuList />} />
           <Route path="/eju/:idx" element={<EjuLecturePage />} />
+          <Route path="/jitan" element={<JitanHome />} />
+          <Route path="/jitan/:id" element={<JitanDeckPage />} />
+          <Route path="/kyotsu" element={<KyotsuHome />} />
+          <Route path="/kyotsu/:q" element={<KyotsuQuestion />} />
+          <Route path="/math" element={<MathHome />} />
+          <Route path="/math/:no" element={<MathPage />} />
           <Route path="/exam" element={<Exam />} />
           <Route path="/check" element={<Checklist />} />
           <Route

@@ -61,3 +61,9 @@ body { @apply bg-stone-50 text-slate-800 antialiased; word-break: keep-all; over
 .md hr { @apply my-6 border-slate-200; }
 .en { font-family: var(--font-serif); }
 .tnum { font-variant-numeric: tabular-nums; }
+
+/* 해설 본문 안의 필수/권장/패스 표기 */
+.md .tier-필수, .md .tier-권장, .md .tier-패스 { @apply inline-flex items-center rounded-md px-1.5 py-0.5 align-middle text-[11px] font-bold ring-1; }
+.md .tier-필수 { @apply bg-rose-50 text-rose-700 ring-rose-200; }
+.md .tier-권장 { @apply bg-amber-50 text-amber-800 ring-amber-200; }
+.md .tier-패스 { @apply bg-stone-100 text-slate-500 ring-slate-200; }

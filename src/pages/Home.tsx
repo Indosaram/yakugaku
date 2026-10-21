@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ArrowRight, BookOpenText, ClipboardCheck, FlaskConical, Languages, ListChecks, PlayCircle, Target } from "lucide-react";
+import { ArrowRight, BookOpenText, Calculator, ClipboardCheck, FileText, FlaskConical, Languages, Layers, ListChecks, PlayCircle, Target } from "lucide-react";
 import { useData, type EjuLecture, type Tiers } from "../data/remote";
 import { useProgress } from "../progress";
 import { lessons, papers, vocab } from "../data";
@@ -37,6 +37,30 @@ const SUBJECTS = [
     ja: "講義ノート",
     color: "bg-amber-50 text-amber-800",
     desc: "유튜브 EJU화학 75강을 대단원별 한국어 교재로. 강의마다 요약·암기·확인 문제",
+  },
+  {
+    to: "/jitan",
+    icon: Layers,
+    name: "화학 암기 카드",
+    ja: "超！時短演習",
+    color: "bg-emerald-50 text-emerald-700",
+    desc: "超わかる 時短演習 시리즈 26편(무기·유기·고분자·중요 반응식)을 한국어 플래시카드로",
+  },
+  {
+    to: "/kyotsu",
+    icon: FileText,
+    name: "공통테스트 2025 화학",
+    ja: "共通テスト",
+    color: "bg-violet-50 text-violet-700",
+    desc: "시험지 PDF와 전 문항 한국어 해설. 공식 정답 기준, 소문항마다 필수/권장/패스",
+  },
+  {
+    to: "/math",
+    icon: Calculator,
+    name: "1분 수학",
+    ja: "大学入試数学",
+    color: "bg-cyan-50 text-cyan-700",
+    desc: "サボテン浪 «1分で攻略» 쇼츠 7편을 문제·신호·풀이 순서로 한국어 정리",
   },
 ];
 

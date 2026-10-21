@@ -288,9 +288,9 @@ function shuffle(n: number) {
   return a;
 }
 
-export function ChemDeck() {
+export function ChemDeck({ src = "chem/decks.json", back = ["화학", "/chem"] }: { src?: string; back?: [string, string] } = {}) {
   const { id } = useParams();
-  const { data: D, error } = useData<Record<string, Deck>>("chem/decks.json");
+  const { data: D, error } = useData<Record<string, Deck>>(src);
   const d = D && id ? D[id] : undefined;
   const [order, setOrder] = useState<number[]>([]);
   const [at, setAt] = useState(0);
@@ -328,7 +328,7 @@ export function ChemDeck() {
     }
     return (
       <div className="chem mx-auto max-w-xl">
-        <Crumb items={[["화학", "/chem"], [d.title]]} />
+        <Crumb items={[back, [d.title]]} />
         <div className="result">
           <b>{ok} / {n}</b>
           <p>{score === 100 ? "전부 맞혔어요." : `${n - ok}장을 다시 볼 필요가 있어요.`}</p>
@@ -348,7 +348,7 @@ export function ChemDeck() {
   const c = d.cards[order[at] ?? 0];
   return (
     <div className="chem mx-auto max-w-xl">
-      <Crumb items={[["화학", "/chem"], [d.title]]} />
+      <Crumb items={[back, [d.title]]} />
       <div className="study">
         <div className="study-top"><span>{at + 1} / {n}</span><MiniBar a={at} b={n} /><span>맞힘 {ok}</span></div>
         <div className={"flash" + (shown ? " revealed" : "")} role="button" tabIndex={0} onClick={() => setShown(true)}>
@@ -357,7 +357,7 @@ export function ChemDeck() {
           <div className="a" aria-live="polite">
             {shown ? (
               <>
-                <span className="val">{c.sw && <i style={{ background: c.sw }} />}{c.a}</span>
+                <span className="val" style={{ whiteSpace: "pre-line" }}>{c.sw && <i style={{ background: c.sw }} />}{c.a}</span>
                 {c.s && <span className="sub">{c.s}</span>}
                 {c.n && <span className="note">반응원리: {c.n}</span>}
               </>
