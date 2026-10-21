@@ -1,0 +1,63 @@
+@import "tailwindcss";
+@import "pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css";
+@theme {
+  --font-sans: "Pretendard Variable", "Pretendard", "Apple SD Gothic Neo", "Noto Sans KR", "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif;
+  --font-serif: "Georgia", "Times New Roman", "Noto Serif JP", serif;
+}
+@layer base {
+  *, ::before, ::after { border-color: var(--color-slate-200); }
+  h1, h2, h3 { text-wrap: balance; }
+  :focus-visible { outline: 2px solid var(--color-indigo-500); outline-offset: 2px; border-radius: 0.5rem; }
+}
+html { scroll-behavior: smooth; }
+body { @apply bg-stone-50 text-slate-800 antialiased; word-break: keep-all; overflow-wrap: anywhere; }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, ::before, ::after { transition-duration: 0ms !important; animation-duration: 0ms !important; }
+}
+.reveal { animation: reveal 200ms ease-out both; }
+@keyframes reveal { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+.spring-pop { animation: spring-pop 320ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+@keyframes spring-pop {
+  0% { opacity: 0; transform: translateY(6px) scale(0.96); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+.slot-fill { animation: slot-fill 360ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+@keyframes slot-fill {
+  0% { opacity: 0; transform: translateY(-8px) scale(0.92); }
+  70% { opacity: 1; transform: translateY(1px) scale(1.03); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+.train-active {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 8px 20px -6px rgb(67 56 202 / 0.25);
+}
+.ease-spring { transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1); }
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
+.md { @apply leading-relaxed text-[15.5px]; }
+.md > :first-child { margin-top: 0; }
+.md h1 { @apply text-2xl font-bold mt-6 mb-3 text-slate-900; }
+.md h2 { @apply text-xl font-bold mt-9 mb-3 pb-2 border-b border-slate-200 text-slate-900; }
+.md h3 { @apply text-lg font-semibold mt-6 mb-2 text-slate-900; }
+.md h4 { @apply font-semibold mt-4 mb-1; }
+.md p { @apply my-2.5; }
+.md ul { @apply list-disc pl-6 my-2 space-y-1; }
+.md ol { @apply list-decimal pl-6 my-2 space-y-1; }
+.md li::marker { @apply text-slate-400; }
+.md strong { @apply font-semibold text-slate-900; }
+.md em { @apply italic; }
+.md u { @apply decoration-2 underline-offset-4 decoration-rose-500; }
+.md code { @apply bg-stone-100 rounded px-1.5 py-0.5 text-[0.9em] font-mono text-rose-700; }
+.md pre { @apply bg-slate-900 text-slate-100 rounded-xl p-4 overflow-x-auto my-3; }
+.md pre code { @apply bg-transparent text-slate-100 p-0; }
+.md blockquote { @apply bg-indigo-50 px-4 py-3 my-4 rounded-xl text-slate-700; }
+.md blockquote p { @apply my-1; }
+.md table { @apply w-full my-4 text-sm border-collapse block overflow-x-auto; }
+.md th { @apply bg-stone-100 font-semibold text-left px-3 py-2 border border-slate-200 whitespace-nowrap; }
+.md td { @apply px-3 py-2 border border-slate-200 align-top min-w-[5.5em]; }
+.md a { @apply text-indigo-700 underline underline-offset-2 hover:text-indigo-900; }
+.md hr { @apply my-6 border-slate-200; }
+.en { font-family: var(--font-serif); }
+.tnum { font-variant-numeric: tabular-nums; }
