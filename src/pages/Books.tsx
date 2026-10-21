@@ -67,7 +67,7 @@ export function BooksHome() {
               <h2 className="text-xl font-bold text-slate-900">빈출 영문법·어법 문제</h2>
               <span className="text-sm text-slate-500 tnum">{gTotal}문항</span>
             </div>
-            <p className="mt-1 text-sm text-slate-600">시제부터 강조·생략까지 {g.length}개 단원. 단원마다 핵심 정리 → 4지선다 → 정답·해설 순서예요. 지금은 일부 문항만 옮겨져 있고, 나머지는 계속 추가돼요.</p>
+            <p className="mt-1 text-sm text-slate-600">시제부터 강조·생략까지 {g.length}개 단원. 단원마다 핵심 정리 → 4지선다 → 정답·해설 순서예요.</p>
             <Bar value={gDone} total={gTotal} label="푼 문제" />
             <ol className="mt-4 divide-y divide-slate-100">
               {g.map((u) => {
@@ -92,7 +92,7 @@ export function BooksHome() {
               <h2 className="text-xl font-bold text-slate-900">영숙어장</h2>
               <span className="text-sm text-slate-500 tnum">{iTotal}개</span>
             </div>
-            <p className="mt-1 text-sm text-slate-600">비슷한 숙어끼리 묶은 그룹별로 뜻·예문·해석을 한국어로. 뜻 가리기로 암기 점검을 할 수 있어요. 지금은 앞부분만 옮겨져 있고, 나머지는 계속 추가돼요.</p>
+            <p className="mt-1 text-sm text-slate-600">비슷한 숙어끼리 묶은 그룹별로 뜻·예문·해석을 한국어로. 뜻 가리기로 암기 점검을 할 수 있어요.</p>
             <Bar value={iDone} total={iTotal} label="외운 숙어" />
             <Link to="/books/idioms" className="mt-4 inline-flex items-center gap-2 rounded-xl bg-indigo-700 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-800">숙어장 열기</Link>
             {id && (
