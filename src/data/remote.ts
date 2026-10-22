@@ -40,6 +40,7 @@ export interface ChemIndex {
   band: string;
   organic: { no: number; title: string; band: string; problems: { n: string; a: string; g: string }[] }[];
   inorganic: { id: string; no: number; title: string; lead: string }[];
+  bridge?: { id: string; no: number; label: string; title: string; band: string; problems: { n: string; a: string; g: string }[] }[];
   decks: { id: string; title: string; count: number }[];
 }
 export type Deck = { title: string; hint: string; cards: { q: string; a: string; s?: string; sw?: string; n?: string }[] };

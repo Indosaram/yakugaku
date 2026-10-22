@@ -74,6 +74,29 @@ export function ChemHome() {
           );
         })}
       </ul>
+      {idx.bridge && (
+        <>
+          <h2 className="mt-10 mb-3 text-xl font-bold text-slate-900">본고사 브리지 해설 <span className="text-sm font-medium text-slate-500">합격화학 본고사 브리지</span></h2>
+          <ul className="chap-list">
+            {idx.bridge.map((c) => {
+              const d = c.problems.filter((p) => get(`chem:done:b${c.id}/${p.n}`) === true).length;
+              return (
+                <li key={c.id}>
+                  <Link to={`/chem/b/${c.id}`} style={{ ["--b" as string]: c.band }}>
+                    <span className="chap-no">{c.no}</span>
+                    <span>
+                      <span className="t inline-flex items-center gap-2">{c.label} · {c.title}</span>
+                      <br />
+                      <span className="s">{c.problems.length}문항 · 정답과 문항별 상세 해설</span>
+                    </span>
+                    <span className="p">{d}/{c.problems.length}<MiniBar a={d} b={c.problems.length} /></span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </>
+      )}
       <h2 className="mt-10 mb-3 text-xl font-bold text-slate-900">무기화학 정리 교재 <span className="text-sm font-medium text-slate-500">{idx.inorganic.length}단원</span></h2>
       <div className="ino-grid">
         {idx.inorganic.map((s) => {
@@ -93,27 +116,39 @@ export function ChemHome() {
   );
 }
 
+// ---------- 장 찾기 (유기편 o / 본고사 브리지 b) ----------
+type Book = "o" | "b";
+type Chap = { key: string; short: string; label: string; title: string; band: string; problems: { n: string; a: string; g: string }[]; base: string; data: string };
+function findChap(idx: ChemIndex, book: Book, no?: string): Chap | undefined {
+  if (book === "b") {
+    const b = idx.bridge?.find((x) => x.id === no);
+    return b && { key: "b" + b.id, short: "B" + b.no, label: b.label, title: b.title, band: b.band, problems: b.problems, base: `/chem/b/${b.id}`, data: `chem/b${b.id}.json` };
+  }
+  const c = idx.organic.find((x) => String(x.no) === no);
+  return c && { key: String(c.no), short: String(c.no), label: `제${c.no}장`, title: c.title, band: c.band, problems: c.problems, base: `/chem/o/${c.no}`, data: `chem/o${c.no}.json` };
+}
+
 // ---------- 유기 장 ----------
-export function ChemChapter() {
+export function ChemChapter({ book = "o" }: { book?: Book } = {}) {
   const { no } = useParams();
   const { data: idx, error } = useChem();
   const { get } = useProgress();
   const [filter, setFilter] = useState<"all" | "todo" | "star">("all");
   const [covered, setCovered] = useState(() => get("chem:cover") === true);
   if (!idx) return <Loading error={error} />;
-  const c = idx.organic.find((x) => String(x.no) === no);
+  const c = findChap(idx, book, no);
   if (!c) return <Loading error={new Error("404")} />;
   const list = c.problems.filter((p) => {
-    const k = `${c.no}/${p.n}`;
+    const k = `${c.key}/${p.n}`;
     return filter === "all" || (filter === "todo" && get(`chem:done:${k}`) !== true) || (filter === "star" && get(`chem:star:${k}`) === true);
   });
-  const d = c.problems.filter((p) => get(`chem:done:${c.no}/${p.n}`) === true).length;
+  const d = c.problems.filter((p) => get(`chem:done:${c.key}/${p.n}`) === true).length;
   return (
     <div className="chem">
-      <Crumb items={[["화학", "/chem"], [`제${c.no}장`]]} />
+      <Crumb items={[["화학", "/chem"], [c.label]]} />
       <div className="chap-head" style={{ ["--b" as string]: c.band }}>
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight"><span className="chap-band" aria-hidden />제{c.no}장 {c.title}</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight"><span className="chap-band" aria-hidden />{c.label} {c.title}</h1>
           <p className="text-slate-600">{c.problems.length}문항 중 {d}문항 풀었음</p>
         </div>
         <div className="toolbar">
@@ -130,13 +165,13 @@ export function ChemChapter() {
       {list.length ? (
         <div className={"wall" + (covered ? " covered" : "")} style={{ ["--b" as string]: c.band }}>
           {list.map((p) => {
-            const k = `${c.no}/${p.n}`;
+            const k = `${c.key}/${p.n}`;
             const done = get(`chem:done:${k}`) === true, star = get(`chem:star:${k}`) === true;
             return (
-              <Link key={p.n} className={"cell" + (done ? " done" : "") + (star ? " star" : "")} to={`/chem/o/${c.no}/${p.n}`}
+              <Link key={p.n} className={"cell" + (done ? " done" : "") + (star ? " star" : "")} to={`${c.base}/${p.n}`}
                 onPointerOver={(e) => e.currentTarget.classList.add("peek")} onPointerOut={(e) => e.currentTarget.classList.remove("peek")}>
                 <span className="z">{p.n}{done ? <Check className="size-3.5" /> : star ? <Star className="size-3.5 fill-amber-300 text-amber-600" /> : null}</span>
-                <span className="ans">{p.a}</span>
+                <span className={"ans" + (p.a.length > 4 ? " long" : "")}>{p.a}</span>
                 <span className="g">{p.g}</span>
               </Link>
             );
@@ -150,19 +185,19 @@ export function ChemChapter() {
 }
 
 // ---------- 유기 문항 ----------
-export function ChemProblem() {
+export function ChemProblem({ book = "o" }: { book?: Book } = {}) {
   const { no, n } = useParams();
   const nav = useNavigate();
   const { data: idx, error } = useChem();
-  const { data: bodies, error: e2 } = useData<Record<string, string>>(no ? `chem/o${no}.json` : null);
+  const c = idx ? findChap(idx, book, no) : undefined;
+  const { data: bodies, error: e2 } = useData<Record<string, string>>(c ? c.data : null);
   const { get } = useProgress();
   const [shown, setShown] = useState(false);
   const covered = get("chem:cover") === true;
   useEffect(() => setShown(false), [no, n]);
-  const c = idx?.organic.find((x) => String(x.no) === no);
   const i = c ? c.problems.findIndex((p) => p.n === n) : -1;
-  const prev = c && i > 0 ? `/chem/o/${c.no}/${c.problems[i - 1].n}` : "";
-  const next = c && i >= 0 && i < c.problems.length - 1 ? `/chem/o/${c.no}/${c.problems[i + 1].n}` : "";
+  const prev = c && i > 0 ? `${c.base}/${c.problems[i - 1].n}` : "";
+  const next = c && i >= 0 && i < c.problems.length - 1 ? `${c.base}/${c.problems[i + 1].n}` : "";
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
       if (/input|textarea/i.test((e.target as HTMLElement).tagName)) return;
@@ -175,20 +210,20 @@ export function ChemProblem() {
   if (!idx || !bodies) return <Loading error={error ?? e2} />;
   if (!c || i < 0) return <Loading error={new Error("404")} />;
   const p = c.problems[i];
-  const k = `${c.no}/${p.n}`;
+  const k = `${c.key}/${p.n}`;
   const done = get(`chem:done:${k}`) === true, star = get(`chem:star:${k}`) === true;
   return (
     <div className="chem">
-      <Crumb items={[["화학", "/chem"], [`제${c.no}장 ${c.title}`, `/chem/o/${c.no}`], [`${p.n}번`]]} />
+      <Crumb items={[["화학", "/chem"], [`${c.label} ${c.title}`, c.base], [`${p.n}번`]]} />
       <div className="prob" style={{ ["--b" as string]: c.band }}>
         <article>
           <div className="prob-head">
-            <div className={"big-cell" + (covered && !shown ? " covered" : "")}>
-              <span className="z">{c.no}–{p.n}</span>
+            <div className={"big-cell" + (p.a.length > 4 ? " long" : "") + (covered && !shown ? " covered" : "")}>
+              <span className="z">{c.short}–{p.n}</span>
               <span className="ans" role={covered ? "button" : undefined} tabIndex={covered ? 0 : undefined} onClick={() => setShown(true)}>{p.a}</span>
               <span className="cap">정답</span>
             </div>
-            <div className="meta"><h1>{Number(p.n)}번 문제</h1><span className="chap">제{c.no}장 {c.title}</span></div>
+            <div className="meta"><h1>{/^\d+$/.test(p.n) ? `${Number(p.n)}번 문제` : `${p.n[0] === "K" ? "개념확인" : "연습"} ${Number(p.n.slice(1))}번`}</h1><span className="chap">{c.label} {c.title}</span></div>
           </div>
           <div className="actions">
             <button className="chip" aria-pressed={done} onClick={() => setProgress(`chem:done:${k}`, !done)}><Check /><span>{done ? "풀었음" : "풀었음 표시"}</span></button>
@@ -201,10 +236,10 @@ export function ChemProblem() {
           </nav>
         </article>
         <aside className="aside" aria-label="이 장의 문항">
-          <h4>제{c.no}장 문항</h4>
+          <h4>{c.label} 문항</h4>
           <div className="mini">
             {c.problems.map((q) => (
-              <Link key={q.n} to={`/chem/o/${c.no}/${q.n}`} className={get(`chem:done:${c.no}/${q.n}`) === true ? "done" : ""} aria-current={q.n === p.n ? "page" : undefined}>{q.n}</Link>
+              <Link key={q.n} to={`${c.base}/${q.n}`} className={get(`chem:done:${c.key}/${q.n}`) === true ? "done" : ""} aria-current={q.n === p.n ? "page" : undefined}>{q.n}</Link>
             ))}
           </div>
           <p className="keys"><kbd>←</kbd> <kbd>→</kbd> 이전·다음 문항</p>

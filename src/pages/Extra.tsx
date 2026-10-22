@@ -1,5 +1,6 @@
+import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { Calculator, FileText, Layers } from "lucide-react";
+import { Calculator, FileText, FlaskConical, Layers, Sigma } from "lucide-react";
 import { useData, type Deck, type Tier } from "../data/remote";
 import { useProgress } from "../progress";
 import { Md } from "../components/Md";
@@ -188,4 +189,129 @@ export function MathPage() {
       </nav>
     </div>
   );
+}
+
+// ---------- 난관대 전 패턴 (サボテン浪) ----------
+type NkItem = { no: number; title: string; ja: string; t: number; tier?: Tier; n?: number };
+type NkSet = { id: string; title: string; ja: string; yt: string; pdf: string; lead: string; unit: string; items: NkItem[] };
+type NkIndex = NkSet[];
+const hms = (s: number) => `${Math.floor(s / 3600)}:${String(Math.floor((s % 3600) / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
+
+export function NankanHome() {
+  const { data, error } = useData<NkIndex>("nankan/index.json");
+  if (!data) return <Loading error={error} />;
+  return (
+    <div>
+      <PageTitle kicker="난관대 전 패턴" title="난관대 화학·수학 전 패턴 한국어 정리">
+        유튜브 「サボテン浪」의 旧帝大 과거문제 분석 강의 두 편을 한국어로 정리했어요. 강의 제작자가 공개한 정리 PDF를 그대로 옮겼고, 단원마다 호시 기준 <b>필수 · 권장 · 패스</b>를 붙였어요.
+      </PageTitle>
+      <TierLegend />
+      {data.map((s) => (
+        <section key={s.id} className="mt-8">
+          <h2 className="mb-1 flex items-center gap-2 text-xl font-bold text-slate-900">{s.id === "inorg" ? <FlaskConical className="size-5 text-rose-700" /> : <Sigma className="size-5 text-sky-700" />}{s.title}</h2>
+          <p className="mb-3 text-sm text-slate-500">{s.lead} · <a className="underline" href={`https://www.youtube.com/watch?v=${s.yt}`} target="_blank" rel="noreferrer">원본 영상</a> · <a className="underline" href={s.pdf} target="_blank" rel="noreferrer">원본 정리 PDF</a></p>
+          <ol className="divide-y divide-slate-200 overflow-hidden rounded-2xl border border-slate-200 bg-white">
+            {s.items.map((m) => (
+              <li key={m.no}>
+                <Link to={`/nankan/${s.id}/${m.no}`} className="group flex items-center gap-4 px-4 py-3 hover:bg-stone-50">
+                  <span className="w-8 shrink-0 text-right text-sm text-slate-400 tnum">{m.no}</span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block font-semibold text-slate-900 group-hover:text-indigo-700">{m.title}</span>
+                    <span className="block truncate text-xs text-slate-500" lang="ja">{m.ja}{m.n ? ` · ${m.n}${s.unit}` : ""}</span>
+                  </span>
+                  <TierBadge tier={m.tier} />
+                </Link>
+              </li>
+            ))}
+          </ol>
+        </section>
+      ))}
+    </div>
+  );
+}
+
+export function NankanPage() {
+  const { set, no } = useParams();
+  const { data } = useData<NkIndex>("nankan/index.json");
+  const { data: md, error } = useData<string>(set && no ? `nankan/${set}/${no.padStart(2, "0")}.md` : null, "text");
+  const s = data?.find((x) => x.id === set);
+  const i = s ? s.items.findIndex((x) => String(x.no) === no) : -1;
+  const m = s?.items[i], prev = s?.items[i - 1], next = s?.items[i + 1];
+  return (
+    <div className="mx-auto max-w-3xl">
+      <Crumb to="/nankan" label={s?.title ?? "난관대 전 패턴"} here={m ? `${m.no}. ${m.title}` : ""} />
+      {m && s && (
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">{m.no}. {m.title}</h1>
+          <TierBadge tier={m.tier} />
+          <a className="ml-auto text-sm text-indigo-700 underline" href={`https://www.youtube.com/watch?v=${s.yt}&t=${m.t}s`} target="_blank" rel="noreferrer">영상 {hms(m.t)}부터 보기</a>
+        </div>
+      )}
+      <article className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-8">
+        {md ? <Md text={tierize(md)} /> : <Loading error={error} />}
+      </article>
+      <nav className="mt-8 grid grid-cols-2 gap-3" aria-label="이전·다음">
+        {prev ? <Link to={`/nankan/${set}/${prev.no}`} className="rounded-2xl border border-slate-200 bg-white p-4 hover:border-slate-400"><span className="text-xs text-slate-500">이전</span><span className="block truncate font-semibold">{prev.title}</span></Link> : <span />}
+        {next ? <Link to={`/nankan/${set}/${next.no}`} className="rounded-2xl border border-slate-200 bg-white p-4 text-right hover:border-slate-400"><span className="text-xs text-slate-500">다음</span><span className="block truncate font-semibold">{next.title}</span></Link> : <span />}
+      </nav>
+    </div>
+  );
+}
+
+// ---------- 삼각함수 공식 확인 테스트 ----------
+type TrigIndex = { title: string; ja: string; pdf: string; sections: { no: number; title: string; ja: string; points: number; note: string }[]; items: { n: number; sec: number; q: string; a: string; s?: string }[] };
+
+export function TrigHome() {
+  const { data, error } = useData<TrigIndex>("trig/index.json");
+  const { data: decks } = useData<Record<string, Deck>>("trig/decks.json");
+  const [open, setOpen] = useState(false);
+  if (!data) return <Loading error={error} />;
+  return (
+    <div>
+      <PageTitle kicker="수학 II" title={`${data.title} 50문 · 답지와 퀴즈`}>
+        <span lang="ja">{data.ja}</span> 시험지의 정답을 정리하고, 같은 50문항을 플래시카드 퀴즈로 만들었어요. 시험지를 먼저 풀고 답지로 채점하거나, 카드로 바로 외워도 돼요.
+      </PageTitle>
+      <div className="mb-6 flex flex-wrap gap-2">
+        <a className={btn.primary} href={BASE + data.pdf} target="_blank" rel="noreferrer"><FileText className="size-4" />시험지 PDF (3쪽)</a>
+        <Link className={btn.secondary} to="/trig/d/trig"><Layers className="size-4" />50문 전체 퀴즈</Link>
+      </div>
+      {decks && (
+        <div className="mb-8 flex flex-wrap gap-2">
+          {data.sections.map((s) => (
+            <Link key={s.no} to={`/trig/d/trig${s.no}`} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm hover:border-slate-400">{s.no}. {s.title} <span className="text-slate-400">{decks[`trig${s.no}`]?.cards.length}장</span></Link>
+          ))}
+        </div>
+      )}
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="text-xl font-bold text-slate-900">답지</h2>
+        <button className={btn.secondary} aria-pressed={open} onClick={() => setOpen(!open)}>{open ? "답 가리기" : "답 모두 보기"}</button>
+      </div>
+      {data.sections.map((s) => (
+        <section key={s.no} className="mb-6 overflow-hidden rounded-2xl border border-slate-200 bg-white">
+          <h3 className="flex items-baseline gap-2 border-b border-slate-200 bg-stone-50 px-4 py-2.5 font-bold text-slate-900">{s.no}. {s.title}<span className="text-xs font-normal text-slate-500" lang="ja">{s.ja}</span><span className="ml-auto text-xs font-normal text-slate-500">{s.points}점</span></h3>
+          {s.note && <p className="px-4 pt-2 text-sm text-slate-500">{s.note}</p>}
+          <ul className="divide-y divide-slate-100">
+            {data.items.filter((i) => i.sec === s.no).map((i) => <TrigRow key={i.n} i={i} open={open} />)}
+          </ul>
+        </section>
+      ))}
+    </div>
+  );
+}
+
+function TrigRow({ i, open }: { i: TrigIndex["items"][number]; open: boolean }) {
+  const [shown, setShown] = useState(false);
+  const vis = open || shown;
+  return (
+    <li className="grid min-w-0 gap-1 px-4 py-2.5 sm:grid-cols-[1fr_1fr] sm:items-center">
+      <span className="text-slate-800"><span className="mr-1.5 text-slate-400 tnum">({i.n})</span>{i.q}</span>
+      <button onClick={() => setShown(!shown)} className={"min-w-0 break-words rounded-lg px-3 py-1.5 text-left font-semibold " + (vis ? "bg-indigo-50 text-indigo-900" : "bg-rose-700 text-rose-700")} aria-label={vis ? undefined : `${i.n}번 답 보기`}>
+        {i.a}{vis && i.s ? <span className="block text-xs font-normal text-slate-500">{i.s}</span> : null}
+      </button>
+    </li>
+  );
+}
+
+export function TrigDeckPage() {
+  return <ChemDeck src="trig/decks.json" back={["삼각함수 공식", "/trig"]} />;
 }

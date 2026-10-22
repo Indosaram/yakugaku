@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, NavLink, Route, Routes, useLocation } from "react-router-dom";
-import { BookOpenText, Calculator, ClipboardCheck, FileText, FlaskConical, Home as HomeIcon, Languages, Layers, ListChecks, Menu, PlayCircle, X } from "lucide-react";
+import { BookOpenText, Calculator, ClipboardCheck, FileText, FlaskConical, Home as HomeIcon, Languages, Layers, ListChecks, Menu, PlayCircle, Sigma, Triangle, X } from "lucide-react";
 import Home from "./pages/Home";
 import EnglishHome from "./pages/EnglishHome";
 import Guide from "./pages/Guide";
@@ -18,7 +18,7 @@ import { EjuLecturePage, EjuList } from "./pages/Eju";
 import Checklist from "./pages/Checklist";
 import Exam from "./pages/Exam";
 import { BooksHome, GrammarUnit, IdiomsPage } from "./pages/Books";
-import { JitanDeckPage, JitanHome, KyotsuHome, KyotsuQuestion, MathHome, MathPage } from "./pages/Extra";
+import { JitanDeckPage, JitanHome, KyotsuHome, KyotsuQuestion, MathHome, MathPage, NankanHome, NankanPage, TrigDeckPage, TrigHome } from "./pages/Extra";
 
 const NAV = [
   { to: "/", label: "홈", end: true, icon: HomeIcon },
@@ -29,6 +29,8 @@ const NAV = [
   { to: "/jitan", label: "암기 카드", icon: Layers },
   { to: "/kyotsu", label: "공통테스트", icon: FileText },
   { to: "/math", label: "수학", icon: Calculator },
+  { to: "/nankan", label: "난관대 패턴", icon: Sigma },
+  { to: "/trig", label: "삼각함수", icon: Triangle },
   { to: "/exam", label: "기출 분석", icon: ClipboardCheck },
   { to: "/check", label: "체크표", icon: ListChecks },
 ];
@@ -143,6 +145,8 @@ export default function App() {
           <Route path="/chem" element={<ChemHome />} />
           <Route path="/chem/o/:no" element={<ChemChapter />} />
           <Route path="/chem/o/:no/:n" element={<ChemProblem />} />
+          <Route path="/chem/b/:no" element={<ChemChapter book="b" />} />
+          <Route path="/chem/b/:no/:n" element={<ChemProblem book="b" />} />
           <Route path="/chem/i/:id" element={<ChemInorganic />} />
           <Route path="/chem/d/:id" element={<ChemDeck />} />
           <Route path="/eju" element={<EjuList />} />
@@ -153,6 +157,10 @@ export default function App() {
           <Route path="/kyotsu/:q" element={<KyotsuQuestion />} />
           <Route path="/math" element={<MathHome />} />
           <Route path="/math/:no" element={<MathPage />} />
+          <Route path="/nankan" element={<NankanHome />} />
+          <Route path="/nankan/:set/:no" element={<NankanPage />} />
+          <Route path="/trig" element={<TrigHome />} />
+          <Route path="/trig/d/:id" element={<TrigDeckPage />} />
           <Route path="/exam" element={<Exam />} />
           <Route path="/check" element={<Checklist />} />
           <Route

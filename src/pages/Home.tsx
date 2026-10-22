@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ArrowRight, BookOpenText, Calculator, ClipboardCheck, FileText, FlaskConical, Languages, Layers, ListChecks, PlayCircle, Target } from "lucide-react";
+import { ArrowRight, BookOpenText, Calculator, ClipboardCheck, FileText, FlaskConical, Languages, Layers, ListChecks, PlayCircle, Sigma, Target, Triangle } from "lucide-react";
 import { useData, type EjuLecture, type Tiers } from "../data/remote";
 import { useProgress } from "../progress";
 import { lessons, papers, vocab } from "../data";
@@ -61,6 +61,22 @@ const SUBJECTS = [
     ja: "大学入試数学",
     color: "bg-cyan-50 text-cyan-700",
     desc: "サボテン浪 «1分で攻略» 쇼츠 7편을 문제·신호·풀이 순서로 한국어 정리",
+  },
+  {
+    to: "/nankan",
+    icon: Sigma,
+    name: "난관대 전 패턴",
+    ja: "全パターン解説",
+    color: "bg-indigo-50 text-indigo-700",
+    desc: "サボテン浪 무기화학 57장 + 난관대 수학 130패턴을 한국어로. 장마다 필수/권장/패스",
+  },
+  {
+    to: "/trig",
+    icon: Triangle,
+    name: "삼각함수 공식 테스트",
+    ja: "公式確認テスト",
+    color: "bg-pink-50 text-pink-700",
+    desc: "삼각함수 공식 50문 답지와 플래시카드 퀴즈",
   },
 ];
 
