@@ -124,7 +124,7 @@ export default function PaperPage() {
   );
   const rate = answered ? Math.round((correct / answered) * 100) : 0;
   function resetPaper() {
-    if (!p) return;
+    if (!p || !confirm(`${p.year}년도 기출의 내 답 ${answered}개를 지우고 처음부터 풀까요?`)) return;
     p.sections.forEach((s) => s.questions.forEach((_, i) => setProgress(`paper:${p.year}:${s.roman}:${i}`, false)));
   }
   return (

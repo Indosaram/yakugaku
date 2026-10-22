@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link, NavLink, Route, Routes, useLocation } from "react-router-dom";
-import { BookOpenText, Calculator, ClipboardCheck, FileText, FlaskConical, Home as HomeIcon, Languages, Layers, ListChecks, Menu, PlayCircle, Sigma, Triangle, X } from "lucide-react";
+import { BookOpenText, Calculator, ClipboardCheck, Cloud, CloudOff, FileText, FlaskConical, Home as HomeIcon, Languages, Layers, ListChecks, Menu, PlayCircle, Sigma, Triangle, X } from "lucide-react";
+import SyncPage from "./pages/SyncPage";
+import { useSync } from "./sync";
 import Home from "./pages/Home";
 import EnglishHome from "./pages/EnglishHome";
 import Guide from "./pages/Guide";
@@ -59,6 +61,17 @@ export function Logo() {
 const navCls = (active: boolean) =>
   "px-3 py-2 rounded-lg text-sm transition " + (active ? "bg-indigo-50 text-indigo-800 font-semibold" : "text-slate-600 hover:bg-stone-100 hover:text-slate-900");
 
+function SyncBadge() {
+  const s = useSync();
+  const on = !!s.code;
+  return (
+    <Link to="/sync" data-sync-badge={s.status} title={on ? "기록 동기화 중" : "기록 동기화 설정"} className={"inline-flex size-10 shrink-0 items-center justify-center rounded-xl border transition hover:bg-stone-100 " + (on ? (s.status === "offline" || s.status === "error" ? "border-amber-300 text-amber-700" : "border-emerald-200 text-emerald-700") : "border-slate-200 text-slate-500")}>
+      {on ? <Cloud aria-hidden className="size-5" /> : <CloudOff aria-hidden className="size-5" />}
+      <span className="sr-only">{on ? "기록 동기화" : "기록 동기화 설정"}</span>
+    </Link>
+  );
+}
+
 export default function App() {
   const [open, setOpen] = useState(false);
   const loc = useLocation();
@@ -89,10 +102,11 @@ export default function App() {
               </NavLink>
             ))}
           </nav>
+          <span className="ml-auto lg:ml-0"><SyncBadge /></span>
           <button
             aria-label={open ? "메뉴 닫기" : "메뉴 열기"}
             aria-expanded={open}
-            className="lg:hidden ml-auto inline-flex size-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 transition hover:bg-stone-100"
+            className="lg:hidden inline-flex size-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 transition hover:bg-stone-100"
             onClick={() => setOpen((o) => !o)}
           >
             {open ? <X aria-hidden className="size-5" /> : <Menu aria-hidden className="size-5" />}
@@ -163,6 +177,7 @@ export default function App() {
           <Route path="/trig/d/:id" element={<TrigDeckPage />} />
           <Route path="/exam" element={<Exam />} />
           <Route path="/check" element={<Checklist />} />
+          <Route path="/sync" element={<SyncPage />} />
           <Route
             path="*"
             element={
@@ -183,7 +198,7 @@ export default function App() {
           </div>
           <div className="space-y-1 leading-relaxed sm:ml-auto sm:max-w-2xl">
             <p>개인 학습용 비공개 사이트입니다. 星薬科大学과 무관하며, 기출문제·교재의 저작권은 각 저작권자에게 있습니다. 정답·해설과 교재 정리는 자체적으로 작성해서 오류가 있을 수 있어요.</p>
-            <p>입시 요강은 매년 바뀌어요. 최신 정보는 <a className="underline underline-offset-2 hover:text-slate-800" href="https://www.hoshi.ac.jp/admission/nyushi/" target="_blank" rel="noreferrer">대학 공식 입시 페이지</a>에서 확인하세요. 학습 기록은 이 브라우저에만 저장됩니다.</p>
+            <p>입시 요강은 매년 바뀌어요. 최신 정보는 <a className="underline underline-offset-2 hover:text-slate-800" href="https://www.hoshi.ac.jp/admission/nyushi/" target="_blank" rel="noreferrer">대학 공식 입시 페이지</a>에서 확인하세요. 학습 기록은 이 브라우저에 먼저 저장되고, <Link className="underline underline-offset-2 hover:text-slate-800" to="/sync">동기화 코드</Link>를 연결하면 서버에도 백업됩니다.</p>
           </div>
         </div>
       </footer>

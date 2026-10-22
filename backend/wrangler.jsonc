@@ -1,0 +1,13 @@
+{
+  // yakugaku 학습 기록 동기화 백엔드. 프런트(GitHub Pages)와 별도로 `bun run deploy` 로만 배포한다.
+  "name": "yakugaku-sync",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-01",
+  // *.workers.dev 는 일부 망(한국 모바일 핫스팟 등)에서 접속이 막혀 있어 커스텀 도메인을 쓴다.
+  "workers_dev": true,
+  "routes": [{ "pattern": "yakugaku-sync.naidis.dev", "custom_domain": true }],
+  "observability": { "enabled": true },
+  "d1_databases": [
+    { "binding": "DB", "database_name": "yakugaku-sync", "database_id": "03087471-6f5b-4336-8bc2-7a70258e14f1" }
+  ]
+}

@@ -1,10 +1,15 @@
 import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { Check, ChevronDown, Eye, EyeOff, Search, X } from "lucide-react";
+import { Check, ChevronDown, Eye, EyeOff, Layers, List, Search, X } from "lucide-react";
 import { useData } from "../data/remote";
 import { clearProgress, setProgress, useProgress } from "../progress";
+import { MarkButtons, MarkStudy, countMarks, readMark, writeMark, type Legacy, type Mark } from "../marks";
 import { Md } from "../components/Md";
 import { Bar, PageTitle, Segmented } from "../components/ui";
+
+// 숙어 표시: mark:idiom:<숙어>. 예전 "외웠어요"(idiom:<숙어> = true)는 ○ 로 보인다.
+const idiomLegacy = (p: string): Legacy => ({ key: `idiom:${p}`, kind: "known" });
+const g1000Id = (n: number) => `g1000:${n}`;
 
 // ---------- 데이터 형식 ----------
 export interface GQ {
@@ -50,11 +55,11 @@ const CIRCLED = ["①", "②", "③", "④", "⑤"];
 export function BooksHome() {
   const { data: g, error } = useData<GUnit[]>("books/grammar.json");
   const { data: id } = useData<IGroup[]>("books/idioms.json");
-  const { store } = useProgress();
+  const { store, get } = useProgress();
   const gTotal = g?.reduce((a, u) => a + u.questions.length, 0) ?? 0;
   const gDone = Object.keys(store).filter((k) => k.startsWith("g1000:")).length;
   const iTotal = id?.reduce((a, x) => a + x.items.length, 0) ?? 0;
-  const iDone = Object.keys(store).filter((k) => k.startsWith("idiom:") && store[k] === true).length;
+  const iDone = id?.reduce((a, x) => a + x.items.filter((it) => readMark(get, "idiom:" + it.p, idiomLegacy(it.p)) === "o").length, 0) ?? 0;
   return (
     <div>
       <PageTitle kicker="영어 교재" title="영문법·어법 1000제 & 영숙어장">
@@ -93,7 +98,7 @@ export function BooksHome() {
               <span className="text-sm text-slate-500 tnum">{iTotal}개</span>
             </div>
             <p className="mt-1 text-sm text-slate-600">비슷한 숙어끼리 묶은 그룹별로 뜻·예문·해석을 한국어로. 뜻 가리기로 암기 점검을 할 수 있어요.</p>
-            <Bar value={iDone} total={iTotal} label="외운 숙어" />
+            <Bar value={iDone} total={iTotal} label="○ 확실히 아는 숙어" />
             <Link to="/books/idioms" className="mt-4 inline-flex items-center gap-2 rounded-xl bg-indigo-700 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-800">숙어장 열기</Link>
             {id && (
               <ul className="mt-5 flex flex-wrap gap-1.5">
@@ -114,6 +119,7 @@ export function BooksHome() {
 function GQuestion({ q }: { q: GQ }) {
   const { get } = useProgress();
   const picked = get(`g1000:${q.n}`) as number | undefined;
+  const m = readMark(get, g1000Id(q.n));
   const [open, setOpen] = useState(false);
   const answered = typeof picked === "number";
   return (
@@ -145,6 +151,7 @@ function GQuestion({ q }: { q: GQ }) {
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-slate-500">
             {q.src && <span lang="ja">({q.src})</span>}
+            <MarkButtons size="sm" value={m} onChange={(v) => writeMark(g1000Id(q.n), v)} />
             <button onClick={() => setOpen((o) => !o)} aria-expanded={open} className="ml-auto inline-flex items-center gap-1 rounded-lg px-2 py-1 font-semibold text-indigo-700 hover:bg-indigo-50">
               {open ? "정답·해설 접기" : "정답·해설 보기"}<ChevronDown className={"size-3.5 transition " + (open ? "rotate-180" : "")} />
             </button>
@@ -169,17 +176,19 @@ export function GrammarUnit() {
   const { id } = useParams();
   const { data, error } = useData<GUnit[]>("books/grammar.json");
   const { get } = useProgress();
-  const [mode, setMode] = useState<"all" | "todo" | "wrong">("all");
+  const [mode, setMode] = useState<"all" | "todo" | "wrong" | "weak">("all");
   if (!data) return <Loading error={error} />;
   const i = data.findIndex((u) => u.id === id);
   const u = data[i];
   if (!u) return <Loading error={new Error("404")} />;
   const list = u.questions.filter((q) => {
     const p = get(`g1000:${q.n}`);
-    return mode === "all" || (mode === "todo" && typeof p !== "number") || (mode === "wrong" && typeof p === "number" && p !== q.answer);
+    const m = readMark(get, g1000Id(q.n));
+    return mode === "all" || (mode === "todo" && typeof p !== "number") || (mode === "wrong" && typeof p === "number" && p !== q.answer) || (mode === "weak" && (m === "t" || m === "x"));
   });
   const done = u.questions.filter((q) => typeof get(`g1000:${q.n}`) === "number");
   const right = done.filter((q) => get(`g1000:${q.n}`) === q.answer).length;
+  const cnt = countMarks(u.questions.map((q) => g1000Id(q.n)), (x) => readMark(get, x));
   const prev = data[i - 1], next = data[i + 1];
   return (
     <div className="mx-auto max-w-4xl">
@@ -187,17 +196,17 @@ export function GrammarUnit() {
         <Link to="/books" className="hover:text-slate-900 hover:underline">영어 교재</Link><span className="text-slate-300">/</span><span>{u.chapter}</span>
       </nav>
       <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">{Number(u.id)}. {u.title} <span className="text-base font-medium text-slate-400" lang="ja">{u.ja}</span></h1>
-      <p className="mt-2 text-sm text-slate-600 tnum">{u.questions.length}문항 · 푼 문제 {done.length} · 맞힌 문제 {right}</p>
+      <p className="mt-2 text-sm text-slate-600 tnum">{u.questions.length}문항 · 푼 문제 {done.length} · 맞힌 문제 {right} · <span className="text-emerald-700">○ {cnt.o}</span> <span className="text-amber-700">△ {cnt.t}</span> <span className="text-rose-700">× {cnt.x}</span></p>
       <details className="mt-6 rounded-2xl border border-indigo-100 bg-indigo-50/60 p-5" open>
         <summary className="cursor-pointer font-bold text-indigo-900">먼저 읽는 핵심 정리</summary>
         <Md text={u.intro} className="mt-3" />
       </details>
       <div className="mt-6 mb-4 flex flex-wrap items-center gap-3">
-        <Segmented value={mode} onChange={setMode} items={[{ value: "all", label: "전체" }, { value: "todo", label: "안 푼 것" }, { value: "wrong", label: "틀린 것" }]} />
+        <Segmented value={mode} onChange={setMode} items={[{ value: "all", label: "전체" }, { value: "todo", label: "안 푼 것" }, { value: "wrong", label: "틀린 것" }, { value: "weak", label: "△·×" }]} />
         <span className="text-sm text-slate-500 tnum">{list.length}문항</span>
       </div>
       <ol className="space-y-3">{list.map((q) => <GQuestion key={q.n} q={q} />)}</ol>
-      {!list.length && <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center text-slate-500">{mode === "wrong" ? "틀린 문제가 없어요." : "이 단원은 다 풀었어요."}</p>}
+      {!list.length && <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center text-slate-500">{mode === "wrong" ? "틀린 문제가 없어요." : mode === "weak" ? "△·× 로 표시한 문제가 없어요." : "이 단원은 다 풀었어요."}</p>}
       <nav className="mt-8 grid grid-cols-2 gap-3">
         {prev ? <Link to={`/books/g/${prev.id}`} className="rounded-2xl border border-slate-200 bg-white p-4 hover:border-slate-400"><span className="text-xs text-slate-500">이전 단원</span><b className="block truncate">{prev.title}</b></Link> : <span />}
         {next ? <Link to={`/books/g/${next.id}`} className="rounded-2xl border border-slate-200 bg-white p-4 text-right hover:border-slate-400"><span className="text-xs text-slate-500">다음 단원</span><b className="block truncate">{next.title}</b></Link> : <span />}
@@ -207,6 +216,7 @@ export function GrammarUnit() {
 }
 
 // ---------- 숙어장 ----------
+type IFilter = "all" | "none" | "weak" | "o";
 export function IdiomsPage() {
   const { data, error } = useData<IGroup[]>("books/idioms.json");
   const { get } = useProgress();
@@ -214,70 +224,108 @@ export function IdiomsPage() {
   const [group, setGroup] = useState(params.get("g") ?? "all");
   const [q, setQ] = useState("");
   const [hide, setHide] = useState(false);
-  const [onlyTodo, setOnlyTodo] = useState(false);
+  const [filter, setFilter] = useState<IFilter>("all");
+  const [view, setView] = useState<"list" | "card">("list");
   const groups = data ?? [];
+  const mk = (p: string) => readMark(get, "idiom:" + p, idiomLegacy(p));
+  const pass = (m: Mark | undefined) => filter === "all" || (filter === "none" && !m) || (filter === "weak" && (m === "t" || m === "x")) || (filter === "o" && m === "o");
   const shown = useMemo(() => {
     const ql = q.trim().toLowerCase();
     return groups
       .filter((g) => group === "all" || g.id === group)
-      .map((g) => ({ ...g, items: g.items.filter((it) => (!ql || (it.p + it.ko).toLowerCase().includes(ql)) && (!onlyTodo || get(`idiom:${it.p}`) !== true)) }))
+      .map((g) => ({ ...g, items: g.items.filter((it) => (!ql || (it.p + it.ko).toLowerCase().includes(ql)) && pass(mk(it.p))) }))
       .filter((g) => g.items.length);
-  }, [groups, group, q, onlyTodo, get]);
+  }, [groups, group, q, filter, get]); // eslint-disable-line react-hooks/exhaustive-deps
+  // 카드 학습은 그룹 단위(필터와 무관하게 그룹 전체) — 회차 복습 풀이 그룹마다 따로 저장된다
+  const cardItems = useMemo(() => groups.filter((g) => group === "all" || g.id === group).flatMap((g) => g.items), [groups, group]);
+  const byP = useMemo(() => new Map(cardItems.map((it) => ["idiom:" + it.p, it])), [cardItems]);
   if (!data) return <Loading error={error} />;
-  const total = data.reduce((a, g) => a + g.items.length, 0);
-  const known = data.reduce((a, g) => a + g.items.filter((it) => get(`idiom:${it.p}`) === true).length, 0);
+  const all = data.flatMap((g) => g.items);
+  const cnt = countMarks(all.map((it) => it.p), mk);
   return (
     <div>
       <nav aria-label="위치" className="mb-3 flex items-center gap-1.5 text-sm text-slate-500">
         <Link to="/books" className="hover:text-slate-900 hover:underline">영어 교재</Link><span className="text-slate-300">/</span><span>영숙어장</span>
       </nav>
-      <PageTitle title={`영숙어장 ${total}개`}>비슷한 형태끼리 묶은 그룹 순서 그대로예요. 외운 숙어는 체크해서 지워 나가세요.</PageTitle>
-      <div className="mb-5 max-w-md rounded-2xl border border-slate-200 bg-white p-4"><Bar value={known} total={total} label="외운 숙어" /></div>
+      <PageTitle title={`영숙어장 ${all.length}개`}>비슷한 형태끼리 묶은 그룹 순서 그대로예요. 숙어마다 <b>○ 확실히 앎 · △ 애매함 · × 모름</b>으로 표시하고, 카드 학습에서 ×·△ 만 회차를 나눠 다시 돌릴 수 있어요.</PageTitle>
+      <div className="mb-5 max-w-md rounded-2xl border border-slate-200 bg-white p-4">
+        <Bar value={cnt.o} total={all.length} label="○ 확실히 앎" />
+        <p className="mt-1 flex gap-3 text-xs tnum" data-summary><span className="text-amber-700">△ 애매함 {cnt.t}</span><span className="text-rose-700">× 모름 {cnt.x}</span><span className="text-slate-500">표시 없음 {cnt.none}</span></p>
+      </div>
       <div className="sticky top-16 z-10 -mx-4 mb-5 flex flex-wrap items-center gap-3 border-b border-slate-200 bg-stone-50/95 px-4 py-3 backdrop-blur">
-        <label className="relative w-full sm:w-64">
-          <span className="sr-only">숙어 검색</span>
-          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="영어·한국어로 검색" className="w-full rounded-xl border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm" />
-        </label>
+        <Segmented value={view} onChange={setView} items={[{ value: "list", label: <><List aria-hidden className="size-4" />목록</> }, { value: "card", label: <><Layers aria-hidden className="size-4" />카드 학습</> }]} />
         <select value={group} onChange={(e) => setGroup(e.target.value)} className="max-w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm sm:max-w-72" aria-label="그룹 선택">
           <option value="all">모든 그룹 ({data.length})</option>
           {data.map((g) => <option key={g.id} value={g.id}>{g.title} ({g.items.length})</option>)}
         </select>
-        <button onClick={() => setHide((h) => !h)} aria-pressed={hide} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm">
-          {hide ? <EyeOff className="size-4" /> : <Eye className="size-4" />}뜻 가리기
-        </button>
-        <label className="flex items-center gap-2 text-sm"><input type="checkbox" className="size-4 accent-indigo-700" checked={onlyTodo} onChange={(e) => setOnlyTodo(e.target.checked)} />못 외운 것만</label>
-      </div>
-      <div className="space-y-8">
-        {shown.slice(0, group === "all" && !q ? 30 : 400).map((g) => (
-          <section key={g.id} id={`g-${g.id}`}>
-            <h2 className="text-lg font-bold text-slate-900">{g.title}</h2>
-            {g.intro && <p className="mt-1 text-sm text-slate-600">{g.intro}</p>}
-            <ul className="mt-3 grid gap-2.5 md:grid-cols-2">
-              {g.items.map((it) => {
-                const k = get(`idiom:${it.p}`) === true;
-                return (
-                  <li key={it.p} className={"rounded-2xl border border-slate-200 bg-white p-4 transition " + (k ? "opacity-55" : "shadow-sm")}>
-                    <div className="flex items-start gap-2">
-                      <p className="en flex-1 text-[17px] font-bold text-slate-900">{it.p}</p>
-                      {it.lv && <span className="mt-1 shrink-0 rounded bg-stone-100 px-1.5 text-[10px] font-semibold text-slate-500">Lv{it.lv}</span>}
-                      <button aria-pressed={k} onClick={() => setProgress(`idiom:${it.p}`, !k)} className={"shrink-0 rounded-full px-2.5 py-1 text-xs transition " + (k ? "bg-emerald-50 text-emerald-700" : "bg-stone-100 text-slate-600 hover:bg-stone-200")}>{k ? "외움" : "외웠어요"}</button>
-                    </div>
-                    <p tabIndex={hide ? 0 : undefined} className={"mt-0.5 font-semibold text-indigo-800 transition " + (hide ? "blur-sm hover:blur-none focus:blur-none" : "")}>{it.ko}</p>
-                    <p className="en mt-2 text-[15px] text-slate-800">{it.ex}</p>
-                    <p className={"text-sm text-slate-500 transition " + (hide ? "blur-sm hover:blur-none" : "")}>{it.exKo}</p>
-                    {it.note && <p className="mt-2 rounded-lg bg-stone-50 px-2.5 py-1.5 text-xs text-slate-600">▶ {it.note}</p>}
-                  </li>
-                );
-              })}
-            </ul>
-          </section>
-        ))}
-        {group === "all" && !q && shown.length > 30 && (
-          <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">처음 30개 그룹만 보여 줘요. 위에서 그룹을 고르거나 검색하면 나머지 {shown.length - 30}개 그룹도 볼 수 있어요.</p>
+        {view === "list" && (
+          <>
+            <label className="relative w-full sm:w-56">
+              <span className="sr-only">숙어 검색</span>
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+              <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="영어·한국어로 검색" className="w-full rounded-xl border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm" />
+            </label>
+            <Segmented value={filter} onChange={setFilter} items={[{ value: "all", label: "전체" }, { value: "none", label: "표시 없음" }, { value: "weak", label: "△·×" }, { value: "o", label: "○" }]} />
+            <button onClick={() => setHide((h) => !h)} aria-pressed={hide} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm">
+              {hide ? <EyeOff className="size-4" /> : <Eye className="size-4" />}뜻 가리기
+            </button>
+          </>
         )}
-        {!shown.length && <p className="text-center text-slate-500">조건에 맞는 숙어가 없어요.</p>}
       </div>
+      {view === "card" ? (
+        <MarkStudy
+          deck={"idiom:" + group}
+          items={cardItems.map((it) => ({ id: "idiom:" + it.p, legacy: idiomLegacy(it.p) }))}
+          renderLine={(k) => { const it = byP.get(k)!; return <span><b className="en">{it.p}</b> — {it.ko}</span>; }}
+          renderCard={(k, open) => {
+            const it = byP.get(k)!;
+            return (
+              <div className="flex min-h-72 cursor-pointer flex-col items-center justify-center rounded-3xl border border-slate-200 bg-white p-6 text-center shadow-lg sm:p-8">
+                <p className="en text-3xl font-bold text-slate-900">{it.p}</p>
+                {open ? (
+                  <div className="reveal mt-5 w-full space-y-1 border-t border-slate-200 pt-4">
+                    <p className="text-xl font-bold text-indigo-800">{it.ko}</p>
+                    <p className="en mt-3 text-slate-800">{it.ex}</p>
+                    <p className="text-sm text-slate-500">{it.exKo}</p>
+                    {it.note && <p className="mt-2 text-xs text-slate-500">▶ {it.note}</p>}
+                  </div>
+                ) : <p className="mt-8 text-sm text-slate-500">탭해서 뜻 보기</p>}
+              </div>
+            );
+          }}
+        />
+      ) : (
+        <div className="space-y-8">
+          {shown.slice(0, group === "all" && !q ? 30 : 400).map((g) => (
+            <section key={g.id} id={`g-${g.id}`}>
+              <h2 className="text-lg font-bold text-slate-900">{g.title}</h2>
+              {g.intro && <p className="mt-1 text-sm text-slate-600">{g.intro}</p>}
+              <ul className="mt-3 grid gap-2.5 md:grid-cols-2">
+                {g.items.map((it) => {
+                  const m = mk(it.p);
+                  return (
+                    <li key={it.p} data-idiom={it.p} className={"rounded-2xl border bg-white p-4 transition " + (m === "o" ? "border-slate-200 opacity-60" : m === "t" ? "border-amber-300 shadow-sm" : m === "x" ? "border-rose-300 shadow-sm" : "border-slate-200 shadow-sm")}>
+                      <div className="flex flex-wrap items-start gap-2">
+                        <p className="en min-w-0 flex-1 text-[17px] font-bold text-slate-900">{it.p}</p>
+                        {it.lv && <span className="mt-1 shrink-0 rounded bg-stone-100 px-1.5 text-[10px] font-semibold text-slate-500">Lv{it.lv}</span>}
+                        <MarkButtons size="sm" value={m} onChange={(v) => writeMark("idiom:" + it.p, v, idiomLegacy(it.p))} />
+                      </div>
+                      <p tabIndex={hide ? 0 : undefined} className={"mt-0.5 font-semibold text-indigo-800 transition " + (hide ? "blur-sm hover:blur-none focus:blur-none" : "")}>{it.ko}</p>
+                      <p className="en mt-2 text-[15px] text-slate-800">{it.ex}</p>
+                      <p className={"text-sm text-slate-500 transition " + (hide ? "blur-sm hover:blur-none" : "")}>{it.exKo}</p>
+                      {it.note && <p className="mt-2 rounded-lg bg-stone-50 px-2.5 py-1.5 text-xs text-slate-600">▶ {it.note}</p>}
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          ))}
+          {group === "all" && !q && shown.length > 30 && (
+            <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">처음 30개 그룹만 보여 줘요. 위에서 그룹을 고르거나 검색하면 나머지 {shown.length - 30}개 그룹도 볼 수 있어요.</p>
+          )}
+          {!shown.length && <p className="text-center text-slate-500">조건에 맞는 숙어가 없어요.</p>}
+        </div>
+      )}
     </div>
   );
 }

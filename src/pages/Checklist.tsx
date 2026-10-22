@@ -2,31 +2,38 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Check, Plus, Trash2 } from "lucide-react";
 import { useData, type EjuLecture } from "../data/remote";
-import { setProgress, useProgress } from "../progress";
+import { peekProgress, setProgress, useProgress } from "../progress";
 import { TierBadge } from "../components/Tier";
 import { PageTitle, btn } from "../components/ui";
 import { UNITS, watchedKey } from "./Eju";
 
 // 학습 체크표: EJU 강의(대단원별) + 직접 추가하는 인강/교재 항목
+// 목록은 진도 저장소(custom:courses, 동기화됨)에 두고, 예전 키 yk-custom-courses 에도 계속 같이 써 둔다.
 type Custom = { id: string; title: string; total: number };
 const CUSTOM_KEY = "yk-custom-courses";
-function loadCustom(): Custom[] {
+const SYNC_KEY = "custom:courses";
+function parse(v: unknown): Custom[] | null {
+  if (typeof v !== "string") return null;
   try {
-    return JSON.parse(localStorage.getItem(CUSTOM_KEY) ?? "[]");
+    const x = JSON.parse(v);
+    return Array.isArray(x) ? x : null;
   } catch {
-    return [];
+    return null;
   }
+}
+function loadCustom(): Custom[] {
+  return parse(peekProgress(SYNC_KEY)) ?? parse(localStorage.getItem(CUSTOM_KEY)) ?? [];
 }
 
 export default function Checklist() {
   const { data } = useData<EjuLecture[]>("eju/index.json");
   const { get } = useProgress();
-  const [custom, setCustom] = useState<Custom[]>(loadCustom);
+  const custom = parse(get(SYNC_KEY)) ?? loadCustom();
   const [title, setTitle] = useState("");
   const [total, setTotal] = useState(10);
   const saveCustom = (c: Custom[]) => {
-    setCustom(c);
     localStorage.setItem(CUSTOM_KEY, JSON.stringify(c));
+    setProgress(SYNC_KEY, JSON.stringify(c));
   };
   const today = new Date().toISOString().slice(0, 10);
 
