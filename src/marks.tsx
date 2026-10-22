@@ -189,8 +189,11 @@ export function MarkStudy({ deck, items, renderCard, renderLine, onFullDone, emp
   };
   const nextRound = () => {
     const s = review.fresh();
+    // 덱 내용이 바뀌어 풀에 남은 카드가 이 덱에 하나도 없으면 빈 회차에 갇히지 않게 복습을 끝낸다
+    const pool = s ? s.pool.filter((id) => byId.has(id)) : [];
+    if (!pool.length) { review.stop(); return startFull(); }
     review.next();
-    if (s) begin("review", shuffled(s.pool.filter((id) => byId.has(id))));
+    begin("review", shuffled(pool));
   };
   useEffect(() => {
     if (!ids.length) return;

@@ -28,13 +28,68 @@ function writeJSON(k: string, v: unknown) {
   }
 }
 
-let cache: Store = readJSON<Store>(KEY, {});
-let meta: Meta = readJSON<Meta>(META, {});
+const isObj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v);
+
+// 이 탭이 마지막으로 읽거나 쓴 KEY 원문. 다른 탭이 바꿨는지 알아보는 데 쓴다.
+let lastRaw: string | null = null;
+
+// 진도 원본 읽기. 값이 깨져 있으면 덮어쓰기 전에 원문을 따로 보관한다(빈 값으로 덮어 기록을 잃지 않게).
+function loadStore(): Store {
+  let raw: string | null;
+  try {
+    raw = localStorage.getItem(KEY);
+  } catch {
+    return {};
+  }
+  lastRaw = raw;
+  if (raw == null) return {};
+  try {
+    const v: unknown = JSON.parse(raw);
+    if (isObj(v)) return v as Store;
+  } catch {
+    /* 아래에서 원문 보관 */
+  }
+  try {
+    localStorage.setItem(`${KEY}.corrupt-${Date.now()}`, raw);
+  } catch {
+    /* 저장 공간 부족 */
+  }
+  return {};
+}
+
+function loadMeta(): Meta {
+  const m = readJSON<unknown>(META, {});
+  const out = (isObj(m) ? m : {}) as Meta;
+  // 시각 정보가 없던 기존 값은 시각 0 으로 둔다(어느 기기에서든 실제로 바꾼 값이 이긴다).
+  for (const k of Object.keys(cache)) if (out[k] === undefined) out[k] = 0;
+  return out;
+}
+
+let cache: Store = loadStore();
+let meta: Meta = loadMeta();
 const listeners = new Set<() => void>();
 const changeListeners = new Set<(keys: string[]) => void>();
 
-// 시각 정보가 없던 기존 값은 시각 0 으로 둔다(어느 기기에서든 실제로 바꾼 값이 이긴다).
-for (const k of Object.keys(cache)) if (meta[k] === undefined) meta[k] = 0;
+// 다른 탭에서 기록이 바뀌었으면 메모리 사본을 다시 읽는다.
+// 이걸 안 하면 오래 열어 둔 탭이 다음 표시 때 자기 옛 사본을 통째로 저장해 다른 탭의 표시를 지운다.
+function refreshFromStorage(): boolean {
+  let raw: string | null;
+  try {
+    raw = localStorage.getItem(KEY);
+  } catch {
+    return false;
+  }
+  if (raw === lastRaw) return false;
+  cache = loadStore();
+  meta = loadMeta();
+  return true;
+}
+if (typeof window !== "undefined") {
+  window.addEventListener("storage", (e) => {
+    if ((e.key === null || e.key === KEY || e.key === META) && refreshFromStorage()) listeners.forEach((l) => l());
+  });
+}
+
 migrate();
 
 // ---------- 기존 기록 이관 (멱등, 원본 키는 읽기만 한다) ----------
@@ -42,6 +97,7 @@ migrate();
 // 2) yakugaku 초기 화학 카드 최고점 yk-best-<id> → chem:best:<id> (큰 값)
 // 3) 체크표에 직접 추가한 항목 목록 yk-custom-courses → custom:courses (동기화되도록 복사)
 export function migrate() {
+  refreshFromStorage();
   const add: Store = {};
   const put = (k: string, v: Value) => {
     if (cache[k] === undefined && add[k] === undefined && !(meta[k] < 0)) add[k] = v;
@@ -75,7 +131,13 @@ export function migrate() {
 }
 
 function persist() {
-  writeJSON(KEY, cache);
+  const raw = JSON.stringify(cache);
+  try {
+    localStorage.setItem(KEY, raw);
+    lastRaw = raw;
+  } catch {
+    /* 저장 공간 부족·사생활 보호 모드: 메모리에서만 유지 */
+  }
   writeJSON(META, meta);
 }
 
@@ -90,6 +152,7 @@ export function setProgress(key: string, value: Value) {
 }
 
 export function setMany(entries: Record<string, Value | undefined>) {
+  refreshFromStorage();
   const now = Date.now();
   const next = { ...cache };
   const keys: string[] = [];
@@ -176,6 +239,7 @@ export function allKeys(): string[] {
 // 서버에서 받은 항목 병합: 항목마다 더 늦게 바뀐 쪽이 이긴다. 같은 시각이면 로컬 유지.
 // 서버 응답에 없는 키는 건드리지 않으므로 응답이 로컬을 통째로 지우는 일은 없다.
 export function applyRemote(items: SyncItem[]): number {
+  refreshFromStorage();
   const next = { ...cache };
   let n = 0;
   for (const it of items) {
