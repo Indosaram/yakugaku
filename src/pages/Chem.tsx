@@ -149,7 +149,7 @@ export function ChemChapter({ book = "o" }: { book?: Book } = {}) {
       <div className="chap-head" style={{ ["--b" as string]: c.band }}>
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight"><span className="chap-band" aria-hidden />{c.label} {c.title}</h1>
-          <p className="text-slate-600">{c.problems.length}문항 중 {d}문항 풀었음</p>
+          <p className="text-slate-600">{c.problems.length}문항 중 {d}문항 풀었음{book === "b" && <> · <a className="underline" href={`${import.meta.env.BASE_URL}data/chem/bridge${no}.pdf`} target="_blank" rel="noreferrer">문제지 PDF</a></>}</p>
         </div>
         <div className="toolbar">
           <div className="seg" role="group" aria-label="보기 필터">
