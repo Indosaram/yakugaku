@@ -8,6 +8,7 @@ import { MarkButtons, MarkGlyph, MarkStudy, countMarks, readMark, writeMark, typ
 import { TierBadge, TierLegend } from "../components/Tier";
 import { PageTitle } from "../components/ui";
 import { JuyoSection } from "./Juyo";
+import { NotesSection } from "./Notes";
 
 function Loading({ error }: { error?: Error }) {
   if (error) return <div className="py-20 text-center text-slate-600">내용을 불러오지 못했어요. 인터넷 연결을 확인한 뒤 새로고침해 주세요.</div>;
@@ -104,6 +105,7 @@ export function ChemHome() {
         </>
       )}
       <JuyoSection />
+      <NotesSection />
       <h2 className="mt-10 mb-3 text-xl font-bold text-slate-900">무기화학 정리 교재 <span className="text-sm font-medium text-slate-500">{idx.inorganic.length}단원</span></h2>
       <div className="ino-grid">
         {idx.inorganic.map((s) => {

@@ -60,6 +60,7 @@ export interface EjuLecture {
   no: number;
   title: string;
   yt: string;
+  dur?: number; // 영상 길이(초), 재생목록에서 yt-dlp 로 받음
   tier?: Tier;
   why?: string;
   hasNote: boolean;
