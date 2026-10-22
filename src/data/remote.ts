@@ -43,6 +43,13 @@ export interface ChemIndex {
   bridge?: { id: string; no: number; label: string; title: string; band: string; problems: { n: string; a: string; g: string }[] }[];
   decks: { id: string; title: string; count: number }[];
 }
+
+// 화학 중요문제집(化学 重要問題集 2026) 영상 해설 인덱스 (public/data/juyo/index.json). 문항 번호 n 은 "1"…"237"
+export interface JuyoIndex {
+  list: string;
+  groups: { id: string; title: string; ja: string; from: number; to: number; band: string }[];
+  problems: { n: string; a: string; g: string; s: string; yt: string; t: number }[];
+}
 export type Deck = { title: string; hint: string; cards: { q: string; a: string; s?: string; sw?: string; n?: string }[] };
 
 // EJU 강의 인덱스 형식

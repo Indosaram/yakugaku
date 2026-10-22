@@ -16,6 +16,7 @@ import ReadingPage from "./pages/ReadingPage";
 import Resources from "./pages/Resources";
 import Plan from "./pages/Plan";
 import { ChemChapter, ChemDeck, ChemHome, ChemInorganic, ChemProblem } from "./pages/Chem";
+import { JuyoGroup, JuyoProblem } from "./pages/Juyo";
 import { EjuLecturePage, EjuList } from "./pages/Eju";
 import Checklist from "./pages/Checklist";
 import Exam from "./pages/Exam";
@@ -162,6 +163,8 @@ export default function App() {
           <Route path="/chem/b/:no" element={<ChemChapter book="b" />} />
           <Route path="/chem/b/:no/:n" element={<ChemProblem book="b" />} />
           <Route path="/chem/i/:id" element={<ChemInorganic />} />
+          <Route path="/chem/j/:g" element={<JuyoGroup />} />
+          <Route path="/chem/j/:g/:n" element={<JuyoProblem />} />
           <Route path="/chem/d/:id" element={<ChemDeck />} />
           <Route path="/eju" element={<EjuList />} />
           <Route path="/eju/:idx" element={<EjuLecturePage />} />

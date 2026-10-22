@@ -261,3 +261,13 @@
 .chem .mini a.m-x{background:#fdecee;border-color:#eba3ae;color:#a10d25}
 .chem .actions [data-marks] button{min-height:38px}
 .chem .mini a[aria-current]{background:var(--ink);border-color:var(--ink);color:#fff;font-weight:700}
+
+/* 중요문제집: 본문 안 영상 시각 버튼, 소문항 머리, 정답 줄 */
+.chem .prose button.ts{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--rule);background:var(--sheet);border-radius:999px;padding:1px 9px;font:600 12.5px var(--font,inherit);color:var(--focus);cursor:pointer;vertical-align:1px;font-variant-numeric:tabular-nums}
+.chem .prose button.ts:hover{border-color:var(--focus)}
+.chem .prose h4.part{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:15.5px;margin:22px 0 8px}
+.chem .prose p.ans-line{margin:-4px 0 16px;padding:8px 12px;border-radius:var(--r);background:var(--ok-bg)}
+.chem .prose p.ans-line.u{background:var(--warn-bg)}
+.chem .prose p.ans-line.n{background:#eef1f3;color:var(--ink2)}
+.chem .prose ul.chap-ts{list-style:none;padding:0}
+.chem .prose ul.chap-ts li{display:flex;gap:10px;align-items:baseline}

@@ -7,6 +7,7 @@ import { peekProgress, setProgress, useProgress } from "../progress";
 import { MarkButtons, MarkGlyph, MarkStudy, countMarks, readMark, writeMark, type Legacy, type Mark } from "../marks";
 import { TierBadge, TierLegend } from "../components/Tier";
 import { PageTitle } from "../components/ui";
+import { JuyoSection } from "./Juyo";
 
 function Loading({ error }: { error?: Error }) {
   if (error) return <div className="py-20 text-center text-slate-600">내용을 불러오지 못했어요. 인터넷 연결을 확인한 뒤 새로고침해 주세요.</div>;
@@ -56,7 +57,7 @@ export function ChemHome() {
   return (
     <div className="chem">
       <PageTitle kicker="화학" title="화학 교재 · 합격화학 해설">
-        『합격화학 연습문제 유기편』 350문항 해설, 무기화학 정리 교재, 암기 카드를 모았습니다. 단원마다 붙은 <b>필수 · 권장 · 패스</b>는 호시약대 3개년 화학 기출을 기준으로 정했어요.
+        『합격화학 연습문제 유기편』 350문항 해설, 「화학 중요문제집」 영상 해설, 무기화학 정리 교재, 암기 카드를 모았습니다. 단원마다 붙은 <b>필수 · 권장 · 패스</b>는 호시약대 3개년 화학 기출을 기준으로 정했어요.
       </PageTitle>
       <TierLegend />
       <h2 className="mt-8 mb-3 text-xl font-bold text-slate-900">유기편 해설 <span className="text-sm font-medium text-slate-500">제31–37장</span></h2>
@@ -102,6 +103,7 @@ export function ChemHome() {
           </ul>
         </>
       )}
+      <JuyoSection />
       <h2 className="mt-10 mb-3 text-xl font-bold text-slate-900">무기화학 정리 교재 <span className="text-sm font-medium text-slate-500">{idx.inorganic.length}단원</span></h2>
       <div className="ino-grid">
         {idx.inorganic.map((s) => {
