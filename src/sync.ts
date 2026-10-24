@@ -5,6 +5,8 @@ import { allKeys, applyRemote, itemsFor, onBeforeReset, onLocalChange, snapshotA
 // 동기화 코드가 없으면 아무것도 보내지 않는다.
 export const SYNC_URL = (import.meta.env.VITE_SYNC_URL as string | undefined) ?? "https://yakugaku-sync.naidis.dev";
 
+// 모든 기기가 같은 금고 하나를 쓴다. 코드를 입력하지 않아도 열면 바로 같은 기록이 보인다.
+const SHARED_CODE = (import.meta.env.VITE_SYNC_CODE as string | undefined) ?? "15D2YAK11S7Z4Y6R9GR9PEET821NSZH3";
 const CODE = "yk-sync-code";
 const CURSOR = "yk-sync-cursor";
 const PENDING = "yk-sync-pending"; // 아직 서버에 못 올린 키 (오프라인 등)
@@ -148,7 +150,8 @@ export function startSync() {
     else if (pending().size) void syncNow();
   });
   setInterval(() => document.visibilityState === "visible" && schedule(0), 60_000);
-  if (state.code) schedule(300);
+  if (state.code === SHARED_CODE) schedule(300);
+  else void attach(SHARED_CODE, state.code ? "switch-shared" : "auto-shared").catch((e: Error) => console.warn("공용 계정 연결 실패", e));
 }
 
 export function useSync() {

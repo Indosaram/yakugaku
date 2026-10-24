@@ -208,7 +208,7 @@ export default function App() {
           </div>
           <div className="space-y-1 leading-relaxed sm:ml-auto sm:max-w-2xl">
             <p>개인 학습용 비공개 사이트입니다. 星薬科大学과 무관하며, 기출문제·교재의 저작권은 각 저작권자에게 있습니다. 정답·해설과 교재 정리는 자체적으로 작성해서 오류가 있을 수 있어요.</p>
-            <p>입시 요강은 매년 바뀌어요. 최신 정보는 <a className="underline underline-offset-2 hover:text-slate-800" href="https://www.hoshi.ac.jp/admission/nyushi/" target="_blank" rel="noreferrer">대학 공식 입시 페이지</a>에서 확인하세요. 학습 기록은 이 브라우저에 먼저 저장되고, <Link className="underline underline-offset-2 hover:text-slate-800" to="/sync">동기화 코드</Link>를 연결하면 서버에도 백업됩니다.</p>
+            <p>입시 요강은 매년 바뀌어요. 최신 정보는 <a className="underline underline-offset-2 hover:text-slate-800" href="https://www.hoshi.ac.jp/admission/nyushi/" target="_blank" rel="noreferrer">대학 공식 입시 페이지</a>에서 확인하세요. 학습 기록은 모든 기기가 하나의 계정으로 <Link className="underline underline-offset-2 hover:text-slate-800" to="/sync">자동 동기화</Link>돼요.</p>
           </div>
         </div>
       </footer>
