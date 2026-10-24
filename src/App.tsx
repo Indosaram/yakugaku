@@ -22,6 +22,7 @@ import { EjuLecturePage, EjuList } from "./pages/Eju";
 import Checklist from "./pages/Checklist";
 import Exam from "./pages/Exam";
 import { BooksHome, GrammarUnit, IdiomsPage } from "./pages/Books";
+import { YogoDeckPage, YotenDeckPage, YotenHome } from "./pages/Yoten";
 import { JitanDeckPage, JitanHome, KyotsuHome, KyotsuQuestion, MathHome, MathPage, NankanHome, NankanPage, TrigDeckPage, TrigHome } from "./pages/Extra";
 
 const NAV = [
@@ -31,6 +32,7 @@ const NAV = [
   { to: "/chem", label: "화학", icon: FlaskConical },
   { to: "/eju", label: "EJU 강의", icon: PlayCircle },
   { to: "/jitan", label: "암기 카드", icon: Layers },
+  { to: "/yoten", label: "요점·용어", icon: Layers },
   { to: "/kyotsu", label: "공통테스트", icon: FileText },
   { to: "/math", label: "수학", icon: Calculator },
   { to: "/nankan", label: "난관대 패턴", icon: Sigma },
@@ -172,6 +174,9 @@ export default function App() {
           <Route path="/eju/:idx" element={<EjuLecturePage />} />
           <Route path="/jitan" element={<JitanHome />} />
           <Route path="/jitan/:id" element={<JitanDeckPage />} />
+          <Route path="/yoten" element={<YotenHome />} />
+          <Route path="/yoten/d/:id" element={<YotenDeckPage />} />
+          <Route path="/yoten/v/:id" element={<YogoDeckPage />} />
           <Route path="/kyotsu" element={<KyotsuHome />} />
           <Route path="/kyotsu/:q" element={<KyotsuQuestion />} />
           <Route path="/math" element={<MathHome />} />
