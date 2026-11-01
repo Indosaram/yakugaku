@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ArrowRight, BookOpenText, Calculator, ClipboardCheck, FileText, FlaskConical, Languages, Layers, ListChecks, PlayCircle, Sigma, Target, Triangle } from "lucide-react";
+import { ArrowRight, BookOpenText, Calculator, ClipboardCheck, FileText, FlaskConical, Languages, Layers, ListChecks, MoveUpRight, PlayCircle, Sigma, Target, Triangle } from "lucide-react";
 import { useData, type EjuLecture, type Tiers } from "../data/remote";
 import { useProgress } from "../progress";
 import { lessons, papers, vocab } from "../data";
@@ -61,6 +61,14 @@ const SUBJECTS = [
     ja: "大学入試数学",
     color: "bg-cyan-50 text-cyan-700",
     desc: "サボテン浪 «1分で攻略» 쇼츠 7편을 문제·신호·풀이 순서로 한국어 정리",
+  },
+  {
+    to: "/vec",
+    icon: MoveUpRight,
+    name: "수학 C 벡터 해설",
+    ja: "数学III+C ベクトル",
+    color: "bg-emerald-50 text-emerald-700",
+    desc: "교재 18~62쪽 내적부터 공간벡터까지 전 문제. 정석 풀이 + ⚡빠른 풀이",
   },
   {
     to: "/nankan",

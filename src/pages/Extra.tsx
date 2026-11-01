@@ -315,3 +315,52 @@ function TrigRow({ i, open }: { i: TrigIndex["items"][number]; open: boolean }) 
 export function TrigDeckPage() {
   return <ChemDeck src="trig/decks.json" back={["삼각함수 공식", "/trig"]} />;
 }
+
+// ---------- 수학 C 벡터 (교재 해설) ----------
+type VecItem = { no: number; title: string; ja: string; pages: string; range: string };
+
+export function VecHome() {
+  const { data, error } = useData<VecItem[]>("vecc/index.json");
+  if (!data) return <Loading error={error} />;
+  return (
+    <div>
+      <PageTitle kicker="수학 C" title="벡터 전 문제 해설 (내적 ~ 공간벡터)">
+        교재 『数学III+C』 1장 벡터 18~62쪽의 예제·유제·정기테스트 문제를 모두 한국어로 풀었어요. 문제마다 <b>정석 풀이</b>와 시험장에서 더 빨리 끝내는 <b>⚡ 빠른 풀이</b>를 붙였어요. 빠른 풀이는 눌러서 펼쳐 보세요.
+      </PageTitle>
+      <ol className="divide-y divide-slate-200 overflow-hidden rounded-2xl border border-slate-200 bg-white">
+        {data.map((m) => (
+          <li key={m.no}>
+            <Link to={`/vec/${m.no}`} className="group flex items-center gap-4 px-4 py-4 hover:bg-stone-50">
+              <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 tnum font-bold">{m.no}</span>
+              <span className="min-w-0 flex-1">
+                <span className="block font-semibold text-slate-900 group-hover:text-indigo-700">{m.title} <span className="text-xs font-normal text-slate-400">{m.pages}</span></span>
+                <span className="block truncate text-xs text-slate-500"><span lang="ja">{m.ja}</span> · {m.range}</span>
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
+export function VecPage() {
+  const { no } = useParams();
+  const { data } = useData<VecItem[]>("vecc/index.json");
+  const { data: md, error } = useData<string>(no ? `vecc/${no.padStart(2, "0")}.md` : null, "text");
+  const m = data?.find((x) => String(x.no) === no);
+  const prev = data?.find((x) => x.no === Number(no) - 1), next = data?.find((x) => x.no === Number(no) + 1);
+  return (
+    <div className="mx-auto max-w-3xl">
+      <Crumb to="/vec" label="수학 C 벡터" here={m ? `${m.no}. ${m.title}` : ""} />
+      {m && <h1 className="mb-4 text-2xl font-bold tracking-tight text-slate-900">{m.no}. {m.title} <span className="text-base font-normal text-slate-400">{m.pages}</span></h1>}
+      <article className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-8">
+        {md ? <Md text={md} /> : <Loading error={error} />}
+      </article>
+      <nav className="mt-8 grid grid-cols-2 gap-3" aria-label="이전·다음">
+        {prev ? <Link to={`/vec/${prev.no}`} className="rounded-2xl border border-slate-200 bg-white p-4 hover:border-slate-400"><span className="text-xs text-slate-500">이전</span><span className="block truncate font-semibold">{prev.title}</span></Link> : <span />}
+        {next ? <Link to={`/vec/${next.no}`} className="rounded-2xl border border-slate-200 bg-white p-4 text-right hover:border-slate-400"><span className="text-xs text-slate-500">다음</span><span className="block truncate font-semibold">{next.title}</span></Link> : <span />}
+      </nav>
+    </div>
+  );
+}

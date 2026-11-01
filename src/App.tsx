@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, NavLink, Route, Routes, useLocation } from "react-router-dom";
-import { BookOpenText, Calculator, ClipboardCheck, Cloud, CloudOff, FileText, FlaskConical, Home as HomeIcon, Languages, Layers, ListChecks, Menu, PlayCircle, Sigma, Triangle, X } from "lucide-react";
+import { BookOpenText, Calculator, ClipboardCheck, Cloud, CloudOff, FileText, FlaskConical, Home as HomeIcon, Languages, Layers, ListChecks, Menu, MoveUpRight, PlayCircle, Sigma, Triangle, X } from "lucide-react";
 import SyncPage from "./pages/SyncPage";
 import { useSync } from "./sync";
 import Home from "./pages/Home";
@@ -23,7 +23,7 @@ import Checklist from "./pages/Checklist";
 import Exam from "./pages/Exam";
 import { BooksHome, GrammarUnit, IdiomsPage } from "./pages/Books";
 import { YogoDeckPage, YotenDeckPage, YotenHome } from "./pages/Yoten";
-import { JitanDeckPage, JitanHome, KyotsuHome, KyotsuQuestion, MathHome, MathPage, NankanHome, NankanPage, TrigDeckPage, TrigHome } from "./pages/Extra";
+import { JitanDeckPage, JitanHome, KyotsuHome, KyotsuQuestion, MathHome, MathPage, NankanHome, NankanPage, TrigDeckPage, TrigHome, VecHome, VecPage } from "./pages/Extra";
 
 const NAV = [
   { to: "/", label: "홈", end: true, icon: HomeIcon },
@@ -35,6 +35,7 @@ const NAV = [
   { to: "/yoten", label: "요점·용어", icon: Layers },
   { to: "/kyotsu", label: "공통테스트", icon: FileText },
   { to: "/math", label: "수학", icon: Calculator },
+  { to: "/vec", label: "수학C 벡터", icon: MoveUpRight },
   { to: "/nankan", label: "난관대 패턴", icon: Sigma },
   { to: "/trig", label: "삼각함수", icon: Triangle },
   { to: "/exam", label: "기출 분석", icon: ClipboardCheck },
@@ -181,6 +182,8 @@ export default function App() {
           <Route path="/kyotsu/:q" element={<KyotsuQuestion />} />
           <Route path="/math" element={<MathHome />} />
           <Route path="/math/:no" element={<MathPage />} />
+          <Route path="/vec" element={<VecHome />} />
+          <Route path="/vec/:no" element={<VecPage />} />
           <Route path="/nankan" element={<NankanHome />} />
           <Route path="/nankan/:set/:no" element={<NankanPage />} />
           <Route path="/trig" element={<TrigHome />} />
