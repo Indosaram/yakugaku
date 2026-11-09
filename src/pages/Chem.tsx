@@ -6,9 +6,30 @@ import { useData, type ChemIndex, type Deck, type Tiers } from "../data/remote";
 import { peekProgress, setProgress, useProgress } from "../progress";
 import { MarkButtons, MarkGlyph, MarkStudy, countMarks, readMark, writeMark, type Legacy, type Mark } from "../marks";
 import { TierBadge, TierLegend } from "../components/Tier";
-import { PageTitle } from "../components/ui";
+import { PageTitle, btn } from "../components/ui";
+import { buildQueue, SRS_SOURCES, type DeckData } from "../review-queue";
+import { todayISO } from "../srs";
 import { JuyoSection } from "./Juyo";
 import { NotesSection } from "./Notes";
+
+// SRS 복습 대상 파일인지. yoten/yogo.json · trig/decks.json 은 SRS_SOURCES 에 없으므로 배지가 붙지 않는다.
+export function isSrsSource(src: string): boolean {
+  return (SRS_SOURCES as readonly string[]).includes(src);
+}
+
+// 이 덱의 오늘 만기 카드 수. 덱 하나만 필터해 계산하므로 softCap 120 이 다른 덱 몫을 잘라내지 않는다.
+// 신규 카드는 하루 상한(newPerDay)을 덱 전체가 나눠 쓰므로 덱별 숫자로 세지 않는다.
+export function deckDue(src: string, id: string | undefined, decks: Record<string, Deck> | undefined, read: (key: string) => unknown): number {
+  if (!decks || !id || !isSrsSource(src)) return 0;
+  const set = src.split("/")[0];
+  const result = buildQueue({
+    today: todayISO(),
+    decks: { [src]: decks } as Record<string, DeckData>,
+    read,
+    deckFilter: `${set}:${id}`,
+  });
+  return result.counts.due;
+}
 
 function Loading({ error }: { error?: Error }) {
   if (error) return <div className="py-20 text-center text-slate-600">내용을 불러오지 못했어요. 인터넷 연결을 확인한 뒤 새로고침해 주세요.</div>;
@@ -311,10 +332,11 @@ function DeckList() {
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       {Object.entries(D).map(([id, d]) => {
         const best = get(`chem:best:${id}`);
+        const due = deckDue("chem/decks.json", id, D, get);
         return (
           <Link key={id} to={`/chem/d/${id}`} className="flex flex-col gap-1.5 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
             <span className="flex items-center gap-2 font-bold text-slate-900"><Layers className="size-4 text-indigo-700" />{d.title}</span>
-            <span className="text-sm text-slate-500">{d.cards.length}장{typeof best === "number" ? ` · 최고 ${best}%` : ""}</span>
+            <span className="text-sm text-slate-500">{d.cards.length}장{typeof best === "number" ? ` · 최고 ${best}%` : ""}{due > 0 ? ` · 오늘 ${due}장` : ""}</span>
             {d.cards[0]?.sw && (
               <span className="mt-1 flex gap-1" aria-hidden>
                 {[...new Set(d.cards.map((x) => x.sw))].slice(0, 10).map((c) => <i key={c} className="size-4 rounded-sm border border-black/20" style={{ background: c }} />)}
@@ -328,19 +350,29 @@ function DeckList() {
 }
 
 // 카드 표시 키: mark:card:<덱 묶음>:<덱>:<앞면>. 최고 기록은 예전처럼 chem:best:<덱> 에 둔다.
-export function ChemDeck({ src = "chem/decks.json", back = ["화학", "/chem"] }: { src?: string; back?: [string, string] } = {}) {
+export function ChemDeck({ src = "chem/decks.json", back = ["화학", "/chem"], srs = isSrsSource(src) }: { src?: string; back?: [string, string]; srs?: boolean } = {}) {
   const { id } = useParams();
   const { data: D, error } = useData<Record<string, Deck>>(src);
+  const { get } = useProgress();
   const d = D && id ? D[id] : undefined;
   const set = src.split("/")[0];
   const cid = (q: string) => `card:${set}:${id}:${q}`;
   const items = (d?.cards ?? []).map((c) => ({ id: cid(c.q) }));
   const byId = new Map((d?.cards ?? []).map((c) => [cid(c.q), c]));
+  const due = srs ? deckDue(src, id, D, get) : 0;
   if (!D) return <Loading error={error} />;
   if (!d) return <Loading error={new Error("404")} />;
   return (
     <div className="chem mx-auto max-w-xl">
-      <Crumb items={[back, [d.title]]} />
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+        <Crumb items={[back, [d.title]]} />
+        {due > 0 && (
+          <>
+            <span className="mb-3 rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-semibold text-indigo-700 tnum">오늘 이 덱: {due}장</span>
+            <Link to={`/review?deck=${set}:${id}`} className={btn.secondary + " mb-3"}>오늘 복습</Link>
+          </>
+        )}
+      </div>
       <MarkStudy
         deck={`${set}:${id}`}
         items={items}

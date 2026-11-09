@@ -4,7 +4,7 @@ import { Layers, PlayCircle } from "lucide-react";
 import { useData, type Deck } from "../data/remote";
 import { useProgress, setProgress } from "../progress";
 import { PageTitle, btn } from "../components/ui";
-import { ChemDeck } from "./Chem";
+import { ChemDeck, deckDue } from "./Chem";
 
 type Decks = Record<string, Deck>;
 
@@ -13,17 +13,19 @@ function Loading({ error }: { error?: Error }) {
   return <div className="py-20 text-center text-slate-400" role="status">불러오는 중…</div>;
 }
 
-function DeckLinks({ decks, base }: { decks: Decks; base: string }) {
+// src 를 넘겨야 그 파일이 SRS 대상일 때만 덱별 오늘 수가 붙는다. 이과용어(yoten/yogo.json)는 SRS 대상이 아니므로 배지 없음.
+function DeckLinks({ decks, base, src }: { decks: Decks; base: string; src?: string }) {
   const { get } = useProgress();
   return (
     <div className="mb-8 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
       {Object.entries(decks).map(([id, d]) => {
         const best = get(`chem:best:${id}`);
+        const due = deckDue(src ?? "", id, decks, get);
         return (
           <Link key={id} to={`${base}/${id}`} className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 hover:border-slate-400">
             <Layers className="size-4 shrink-0 text-indigo-700" />
             <span className="font-semibold text-slate-900">{d.title}</span>
-            <span className="ml-auto text-sm text-slate-500">{d.cards.length}장{typeof best === "number" ? ` · 최고 ${best}%` : ""}</span>
+            <span className="ml-auto text-sm text-slate-500">{d.cards.length}장{typeof best === "number" ? ` · 최고 ${best}%` : ""}{due > 0 ? ` · 오늘 ${due}장` : ""}</span>
           </Link>
         );
       })}
@@ -95,7 +97,7 @@ export function YotenHome() {
         『無機・有機・高分子化学 要点まとめ問題』의 답지(빨간 손글씨)를 옮겨 적어 답지와 카드로 만들고, 『이과용어의 기초』 표를 한↔일 카드로 만들었어요. 손글씨 답이 틀린 곳은 바로잡고 카드에 "※손글씨 답과 다르게 바로잡음"이라고 적어 두었어요.
       </PageTitle>
       <h2 className="mb-3 text-xl font-bold text-slate-900">要点まとめ問題 카드 <span className="text-sm font-medium text-slate-500">{Object.values(yo).reduce((s, d) => s + d.cards.length, 0)}장</span></h2>
-      <DeckLinks decks={yo} base="/yoten/d" />
+      <DeckLinks decks={yo} base="/yoten/d" src="yoten/decks.json" />
       <h2 className="mb-3 text-xl font-bold text-slate-900">이과용어의 기초 카드 <span className="text-sm font-medium text-slate-500">{Object.values(rg).reduce((s, d) => s + d.cards.length, 0)}장</span></h2>
       <DeckLinks decks={rg} base="/yoten/v" />
       <h2 className="mb-3 flex items-center gap-2 text-xl font-bold text-slate-900"><PlayCircle className="size-5 text-rose-700" />볼 영상 (순서대로)</h2>
