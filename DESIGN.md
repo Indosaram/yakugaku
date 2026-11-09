@@ -132,3 +132,63 @@ Radius: chips `rounded-full`, controls `rounded-xl`, cards `rounded-2xl`, hero `
 |---|---|---|---|
 | No dark mode | global | study content tested only in light; low value for v1.1 | add when a user asks |
 | Single 1.1 MB JS bundle | build | all content is bundled data | route-level code splitting of `data/` |
+
+## Review loop
+
+The scheduler behind `/review`. Dates are device-local `YYYY-MM-DD`; a card is due when its `due` date
+is today or earlier. Every value below is derived from the keys listed in README's storage table.
+
+### Terms
+
+| Term | Meaning |
+|---|---|
+| 만기 (due) | card whose `due` is today or earlier, so it enters today's queue |
+| 신규 (fresh) | card with no `srs:` state and no `mark:`; at most 15 a day, minus what `srs:meta:new:` already recorded |
+| 밀린 (backlog) | due cards past the soft cap of 120; fresh cards are reserved first, the rest waits per deck |
+| 신연 (`srs:log`) | the day's grading count at `srs:log:<YYYY-MM-DD>`; the streak and the 14-day bar read only this |
+
+### Grades
+
+The ladder is `[0, 1, 3, 7, 14, 30, 60, 120]` days and `ivl` is always one of its steps; a value off the
+ladder normalises down to the largest step not above it.
+
+| Key | Label | Ladder move | Ease | Side effects |
+|---|---|---|---|---|
+| `1` | 모름 (x) | back to step 0 | -0.20 | `reps` 0, `lapses` +1, due today |
+| `2` | 어려움 (t) | +1 step | -0.05 | `reps` +1 |
+| `3` | 알맞음 (o) | +2 steps | 0 | `reps` +1 |
+| `4` | 쉬움 (e) | +3 steps | +0.15 | `reps` +1, written as mark ○ |
+
+Ease is clamped to 1.3..2.8 and rounded to two decimals after every move. On `o` and `e` it also shifts
+the step count by one: at ease >= 2.3 the card gains a step (`o` +3, `e` +4), below 1.5 it loses one
+(`o` +1, `e` +2). That is the only path from ease to the schedule. `x` resets the card to today, so a
+card missed comes straight back.
+
+### State colours
+
+Due, fresh and backlog are counts, not coloured states: a `stone-50` tile with ink text on the
+dashboard, identical for all three. Capping has no badge either; the surplus surfaces as the 밀린 카드
+number and the per-deck table, each row a link into that deck's session. The single accent in the block
+is the 복습 시작 button, plus the 14-day bar (`indigo-700`, empty days a `stone-200` hairline). In the
+session no grade is coloured: all four are secondary buttons, only 보기 is primary, and a fresh card is
+marked by the slate-500 "· 새 카드" caption rather than a chip. No state here needs the §2 wash + glyph
+treatment.
+
+### Session
+
+Front (deck name at `text-xs`, then the prompt at `text-lg`) → 보기 → back plus an optional note →
+four grade buttons → 되돌리기 → summary (total, graded, the four tallies, the next three card ids).
+Progress "남은 N장 · 오늘 M장" sits above the card and is `aria-live="polite"`. A refresh resumes the
+same card because the session lives in `yk-review-session`, local only; the day rolling over discards it.
+
+| Key | Action |
+|---|---|
+| Space | reveal the back (only before reveal) |
+| 1-4 | grade x/t/o/e (only after reveal) |
+| u, U, Backspace | undo the last grade and restore every key it touched |
+
+Keys are ignored while a modifier is held or focus sits in an input. Undo rewrites `srs:`, `mark:`,
+`srs:log:` and, for a truly new card, `srs:meta:new:` to the snapshot taken before the grade.
+
+Two limits are accepted here: the two daily counters merge last-write-wins, and grading never touches
+the per-round `review:<deck>` pool used by `MarkStudy`. README 「알려진 한계」 spells both out.
