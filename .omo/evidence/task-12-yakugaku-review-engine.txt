@@ -1,5 +1,5 @@
 TASK 12 - documented stored keys vs. keys present in src
-code scope: all tracked files under src (HEAD b9161bc)
+code scope: all tracked files under src (HEAD 51dda56)
 
 A. code -> docs (every key in code appears in README.md / DESIGN.md)
   OK   srs:card:<set>:<deck>:<q>      src/srs-card.ts:17            README:38
@@ -19,11 +19,12 @@ C. README test command matches package.json
   README states it  = true
 
 D. srs:log: is never pruned
-  only writer of a removal is src/review-session.ts:62, which reads srs:log:/srs:meta:new: as numbers.
-  undo writes numeric 0 instead of deleting the key (plan task 18c).
-  src/pages/ReviewHome.tsx:95 prunes only srs:meta:new: keys older than 60 days.
+  the only code that can write a removal is src/review-session.ts:62, which reads
+  srs:log:/srs:meta:new: as numbers and writes 0 rather than deleting (plan task 18c).
+  src/pages/ReviewHome.tsx:60,94 selects only NEW_PREFIX = "srs:meta:new:" for the
+  60-day cleanup, so srs:log: cannot match.
 
 E. test run
-  bun run test -> 108 pass, 0 fail, 13244 expect() calls, 6 files
+  bun run test -> 122 pass, 0 fail, 13274 expect() calls, 7 files
 
 RESULT PASS

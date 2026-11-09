@@ -294,11 +294,13 @@ Your next move: 승인하면 `/ulw-execute yakugaku-review-engine` 으로 실행
 ## Final verification wave
 
 > Runs in parallel after ALL todos. ALL must APPROVE. Surface results and wait for the user's explicit okay before declaring complete.
-- [ ] F1. Plan compliance audit
-- [ ] F2. Code quality review
-- [ ] F3. Real manual QA
-- [ ] F4. Ideal-state fidelity
+- [x] F1. Plan compliance audit — PASS. 13/13 todos delivered; each IS row has a delivering todo and a proving artifact. Constraints re-checked mechanically (no Math.random outside src/marks.tsx, srs:log: never pruned, no toISOString for "today", src/marks.tsx untouched, 959-card scope).
+- [x] F2. Code quality review — APPROVE at 51dda56. Three passes: pass 1 BLOCK (5 blockers), pass 2 BLOCK (1 blocker: deck badge ignored mark times), pass 3 APPROVE with no blockers. Reviewer verified with its own probes, not by trusting the evidence files.
+- [x] F3. Real manual QA — PASS. Driven through the real UI in a browser against a dev server with sync isolated (unreachable VITE_SYNC_URL, distinct VITE_SYNC_CODE), so the shared production vault could not be touched: /review 20-card run to completion, home card one-click entry, deck badge 1 == session due 1, lecture items in the same queue with flags cleared afterwards, /check showing 0 pressed.
+- [x] F4. Ideal-state fidelity — PASS. IS-1..IS-5 each verified against code and a live UI scenario; no row is satisfied by a note instead of a todo. Reviewer's own IS table: all five PASS.
 
+Gate evidence: .omo/evidence/task-14-18-yakugaku-review-engine.txt, task-9-yakugaku-review-engine.txt, task-10-yakugaku-review-engine.txt, task-12-yakugaku-review-engine.txt.
+Final state: build exit 0, bun run test 122 pass / 0 fail / 13274 expect() / 7 files.
 
 ## Commit strategy
 
