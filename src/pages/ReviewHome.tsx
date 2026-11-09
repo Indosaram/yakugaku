@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, CalendarCheck2 } from "lucide-react";
-import { allKeys, itemsFor, peekProgress, setMany, useProgress } from "../progress";
+import { allKeys, markTimes, peekProgress, setMany, useProgress } from "../progress";
 import { todayISO } from "../srs";
 import { dayKey } from "../srs-card";
 import { buildQueue } from "../review-queue";
@@ -84,8 +84,7 @@ export default function ReviewHome() {
   const queue = useMemo(() => {
     if (!data) return null;
     const lectures = buildLectureItems(data.lectures, data.notes, peekProgress);
-    const markTimes = Object.fromEntries(itemsFor(allKeys()).map((item) => [item.k, item.t]));
-    return buildQueue({ today, decks: data.decks, read: peekProgress, markTimes, lectures });
+    return buildQueue({ today, decks: data.decks, read: peekProgress, markTimes: markTimes(), lectures });
     // store 는 값 자체가 아니라 신호다. peekProgress 가 최신 캐시를 읽도록 채점·정리 뒤 다시 계산한다.
   }, [data, store, today]);
   const activity = useMemo(() => recentActivity(peekProgress, today), [store, today]);

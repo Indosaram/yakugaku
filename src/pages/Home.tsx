@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, BookOpenText, Calculator, CalendarCheck2, ClipboardCheck, FileText, FlaskConical, Languages, Layers, ListChecks, MoveUpRight, PlayCircle, Sigma, Target, Triangle } from "lucide-react";
 import { useData, type EjuLecture, type Tiers } from "../data/remote";
-import { allKeys, itemsFor, peekProgress, useProgress } from "../progress";
+import { markTimes, peekProgress, useProgress } from "../progress";
 import { todayISO } from "../srs";
 import { buildQueue } from "../review-queue";
 import { lessons, papers, vocab } from "../data";
@@ -107,8 +107,8 @@ function useReviewToday(): { value: ReviewToday | null; error?: Error } {
   const value = useMemo<ReviewToday | null>(() => {
     if (!data) return null;
     const lectures = buildLectureItems(data.lectures, data.notes, peekProgress);
-    const markTimes = Object.fromEntries(itemsFor(allKeys()).map((item) => [item.k, item.t]));
-    const queue = buildQueue({ today, decks: data.decks, read: peekProgress, markTimes, lectures });
+    const times = markTimes();
+    const queue = buildQueue({ today, decks: data.decks, read: peekProgress, markTimes: times, lectures });
     const count = queue.counts.due + queue.counts.fresh + queue.counts.lectures;
     const nearest = count === 0 ? scheduledReviews(data.decks, today).find((item) => item.due > today)?.due ?? null : null;
     return { count, nearest };

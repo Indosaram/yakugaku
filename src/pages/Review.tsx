@@ -4,7 +4,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { todayISO } from "../srs";
 import { clear, grade, resume, reveal, save, start, summary, undo, type SessionCard, type SessionState } from "../review-session";
 import { buildQueue, type DeckData, type LectureItem } from "../review-queue";
-import { allKeys, itemsFor, peekProgress, setMany } from "../progress";
+import { markTimes, peekProgress, setMany } from "../progress";
 import { cardId, dayKey } from "../srs-card";
 import { PageTitle, btn } from "../components/ui";
 import { buildLectureItems, loadReviewData, scheduledReviews } from "./Notes";
@@ -56,8 +56,7 @@ export default function Review() {
         const data = await loadReviewData();
         if (!alive) return;
         const lectures = buildLectureItems(data.lectures, data.notes, peekProgress);
-        const markTimes = Object.fromEntries(itemsFor(allKeys()).map((item) => [item.k, item.t]));
-        const queue = buildQueue({ today, decks: data.decks, read: peekProgress, markTimes, lectures, deckFilter });
+        const queue = buildQueue({ today, decks: data.decks, read: peekProgress, markTimes: markTimes(), lectures, deckFilter });
         const items = [...queue.due, ...queue.fresh, ...queue.lectures];
         const cards: SessionCard[] = items.map((item) => ({
           id: item.id,

@@ -1,0 +1,28 @@
+TASK 9 - deck screen shows a due badge and links into that deck's session
+
+Setup (isolated storage; dev server has VITE_SYNC_URL pointing at a closed port)
+  hoshi-eigo-progress-v1 = {"mark:card:chem:color:Fe²⁺":"o"}
+  yk-progress-meta-v1    = {"mark:card:chem:color:Fe²⁺": <now - 8 days>}
+  The seeded interval for ○ is 7 days, so this card is due today and nothing else is.
+
+Badge (screenshot task-9-yakugaku-review-engine.png)
+  deck list on #/chem  ->  "이온·침전의 색  39장 · 오늘 1장"
+  the other three decks (불꽃반응 7장, 기체의 제법 17장, 단골 함정 20장) show no 오늘 badge.
+
+Session it links to  (#/review/session?deck=chem:color)
+  session cards = 16   (due 1 + fresh 15)
+  header        = "남은 16장 · 오늘 0장"
+  the first card shown is chem:color Fe²⁺, the seeded one.
+
+Cross-check: badge 1 == session due 1. This is the invariant the reviewer's blocker was about:
+before the fix deckDue() was called without markTimes, so every ○ card was treated as due
+today and the badge could over-report relative to the session it opened.
+
+Guard test (src/deck-due.test.ts, added this round)
+  "deck badge counts the same cards the deck session opens"  -> badge == session.counts.due, and == 0
+                                                                 for an ○ mark from yesterday
+  "without mark times every o card looks due today"          -> 1   (reproduces the old bug)
+  "badge still counts a card that is genuinely due today"    -> 1   (✕ mark seeds ivl 0)
+  "deckDue returns 0 for sources outside the 959-card scope" -> yogo/trig/missing all 0
+
+RESULT PASS

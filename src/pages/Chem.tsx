@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { Layers, Star } from "lucide-react";
 import "../chem.css";
 import { useData, type ChemIndex, type Deck, type Tiers } from "../data/remote";
-import { peekProgress, setProgress, useProgress } from "../progress";
+import { markTimes, peekProgress, setProgress, useProgress } from "../progress";
 import { MarkButtons, MarkGlyph, MarkStudy, countMarks, readMark, writeMark, type Legacy, type Mark } from "../marks";
 import { TierBadge, TierLegend } from "../components/Tier";
 import { PageTitle, btn } from "../components/ui";
@@ -19,13 +19,21 @@ export function isSrsSource(src: string): boolean {
 
 // 이 덱의 오늘 만기 카드 수. 덱 하나만 필터해 계산하므로 softCap 120 이 다른 덱 몫을 잘라내지 않는다.
 // 신규 카드는 하루 상한(newPerDay)을 덱 전체가 나눠 쓰므로 덱별 숫자로 세지 않는다.
-export function deckDue(src: string, id: string | undefined, decks: Record<string, Deck> | undefined, read: (key: string) => unknown): number {
+// mark 시각을 빼면 모든 ○ 카드가 오늘 만기가 되어, 배지가 실제 세션보다 많은 수를 보여준다.
+export function deckDue(
+  src: string,
+  id: string | undefined,
+  decks: Record<string, Deck> | undefined,
+  read: (key: string) => unknown,
+  times: Readonly<Record<string, number>> = markTimes(),
+): number {
   if (!decks || !id || !isSrsSource(src)) return 0;
   const set = src.split("/")[0];
   const result = buildQueue({
     today: todayISO(),
     decks: { [src]: decks } as Record<string, DeckData>,
     read,
+    markTimes: times,
     deckFilter: `${set}:${id}`,
   });
   return result.counts.due;

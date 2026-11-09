@@ -236,6 +236,12 @@ export function allKeys(): string[] {
   return [...new Set([...Object.keys(cache), ...Object.keys(meta).filter((k) => meta[k] < 0)])];
 }
 
+// mark: 를 포함한 모든 키의 마지막 변경 시각. 시딩은 ○ 표시를 "시각 + 7일" 로 만기시키므로
+// 큐를 만드는 쪽(배지·대시보드·세션·홈 카드)은 모두 이 시각을 함께 넘겨야 같은 숫자가 나온다.
+export function markTimes(): Record<string, number> {
+  return Object.fromEntries(itemsFor(allKeys()).map((item) => [item.k, item.t]));
+}
+
 // 서버에서 받은 항목 병합: 항목마다 더 늦게 바뀐 쪽이 이긴다. 같은 시각이면 로컬 유지.
 // 서버 응답에 없는 키는 건드리지 않으므로 응답이 로컬을 통째로 지우는 일은 없다.
 export function applyRemote(items: SyncItem[]): number {
