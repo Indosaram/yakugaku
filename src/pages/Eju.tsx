@@ -22,6 +22,7 @@ function Loading({ error }: { error?: Error }) {
 
 export const watchedKey = (idx: number) => `eju:watched:${idx}`;
 export const readKey = (idx: number) => `eju:read:${idx}`;
+export const reviewKey = (idx: number) => `eju:review:${idx}`;
 
 export function EjuList() {
   const { data, error } = useData<EjuLecture[]>("eju/index.json");

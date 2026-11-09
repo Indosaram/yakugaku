@@ -1,13 +1,34 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { marked } from "marked";
-import { PlayCircle } from "lucide-react";
+import { Flag, PlayCircle } from "lucide-react";
 import "../chem.css";
-import { useData } from "../data/remote";
+import { useData, type EjuLecture } from "../data/remote";
+import { clearProgress, setProgress, useProgress } from "../progress";
+import type { LectureItem } from "../review-queue";
+import { btn } from "../components/ui";
+import { reviewKey } from "./Eju";
 
 // 한국어 강의 영상 → 한 페이지 개념 노트 (public/data/notes/<id>.md, 목록은 notes/index.json)
 // 본문의 <button class="ts" data-t="초"> 를 누르면 위 영상이 그 시각부터 재생된다.
-type Note = { id: string; title: string; ja: string; yt: string; start: number; dur: number; by: string; lead: string };
+export type Note = { id: string; title: string; ja: string; yt: string; start: number; dur: number; by: string; lead: string };
+export const noteReviewKey = (id: string) => `note:review:${id}`;
+
+export function buildLectureItems(lectures: EjuLecture[], notes: Note[], read: (key: string) => unknown): LectureItem[] {
+  return [
+    ...lectures.filter((l) => read(reviewKey(l.idx))).map((l) => ({
+      id: reviewKey(l.idx), title: `EJU #${l.idx} ${l.title}`, href: `/eju/${l.idx}`,
+    })),
+    ...notes.filter((n) => read(noteReviewKey(n.id))).map((n) => ({
+      id: noteReviewKey(n.id), title: n.title, href: `/chem/n/${n.id}`,
+    })),
+  ];
+}
+
+const relatedDecks: Record<string, { href: string; title: string }> = {
+  "percent-molarity": { href: "/jitan/jt2", title: "황·황산" },
+  "metal-redox": { href: "/jitan/jt8", title: "철·구리·은" },
+};
 const useNotes = () => useData<Note[]>("notes/index.json");
 const fmt = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 
@@ -46,6 +67,7 @@ export function NotePage() {
   const { id } = useParams();
   const { data, error } = useNotes();
   const { data: body, error: e2 } = useData<string>(id ? `notes/${id}.md` : null, "text");
+  const { get } = useProgress();
   const [at, setAt] = useState<number | null>(null);
   useEffect(() => setAt(null), [id]);
   const html = useMemo(() => (body ? (marked.parse(body, { async: false, gfm: true }) as string) : ""), [body]);
@@ -65,6 +87,8 @@ export function NotePage() {
   const n = data.find((x) => x.id === id);
   if (!n) return <Loading error={new Error("404")} />;
   const start = at ?? n.start;
+  const review = Boolean(get(noteReviewKey(n.id)));
+  const deck = relatedDecks[n.id];
   return (
     <div className="chem mx-auto max-w-3xl">
       <nav aria-label="위치" className="mb-3 flex flex-wrap items-center gap-1.5 text-sm text-slate-500">
@@ -84,6 +108,18 @@ export function NotePage() {
         </figcaption>
       </figure>
       <div id="note-body" className="md prose" dangerouslySetInnerHTML={{ __html: html }} />
+      <div className="mt-8 flex flex-wrap items-center gap-3 border-t border-slate-200 pt-5">
+        {deck && <Link to={deck.href} className={btn.secondary}>관련 카드: {deck.title}</Link>}
+        <button
+          type="button"
+          className={btn.secondary + (review ? " !border-amber-400 !bg-amber-100 !text-amber-900" : "")}
+          aria-pressed={review}
+          onClick={() => review ? clearProgress(noteReviewKey(n.id)) : setProgress(noteReviewKey(n.id), true)}
+          data-note-review
+        >
+          <Flag aria-hidden className="size-4" />이 노트 복습 표시
+        </button>
+      </div>
     </div>
   );
 }

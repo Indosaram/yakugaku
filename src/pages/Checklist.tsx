@@ -5,7 +5,7 @@ import { useData, type EjuLecture } from "../data/remote";
 import { clearProgress, peekProgress, setProgress, useProgress, type Value } from "../progress";
 import { TierBadge } from "../components/Tier";
 import { PageTitle, Segmented, btn } from "../components/ui";
-import { UNITS, watchedKey } from "./Eju";
+import { UNITS, reviewKey, watchedKey } from "./Eju";
 
 // 학습 체크표: EJU 강의(대단원별) + 직접 추가하는 인강/교재 항목
 // 목록은 진도 저장소(custom:courses, 동기화됨)에 두고, 예전 키 yk-custom-courses 에도 계속 같이 써 둔다.
@@ -107,8 +107,7 @@ export default function Checklist() {
 }
 
 // ---------- EJU화학 75강 체크표 ----------
-// 저장 키: 수강완료 eju:watched:<idx>(기존 키 그대로), 복습필요 eju:review:<idx>, 복습 메모 eju:memo:<idx>
-const reviewKey = (idx: number) => `eju:review:${idx}`;
+// 저장 키: 수강완료·복습필요는 Eju의 기존 키 그대로, 복습 메모 eju:memo:<idx>
 const memoKey = (idx: number) => `eju:memo:${idx}`;
 type Get = (k: string) => Value | undefined;
 
@@ -132,7 +131,7 @@ function tally(ls: EjuLecture[], get: Get) {
     pct: ls.length ? Math.round((done.length / ls.length) * 100) : 0,
     total: sum(ls),
     doneT: sum(done),
-    review: ls.filter((l) => get(reviewKey(l.idx)) === true).length,
+    review: ls.filter((l) => Boolean(get(reviewKey(l.idx)))).length,
   };
 }
 
@@ -145,7 +144,7 @@ function EjuTable({ data }: { data: EjuLecture[] }) {
   const all = tally(data, get);
   const pass = (l: EjuLecture) =>
     (unit === "all" || l.unit === unit) &&
-    (show === "all" || (show === "todo" && get(watchedKey(l.idx)) !== true) || (show === "review" && get(reviewKey(l.idx)) === true));
+    (show === "all" || (show === "todo" && get(watchedKey(l.idx)) !== true) || (show === "review" && Boolean(get(reviewKey(l.idx)))));
   const units = UNITS.filter((u) => unit === "all" || u.id === unit);
   const shown = data.filter(pass).length;
   return (
@@ -212,7 +211,7 @@ function EjuTable({ data }: { data: EjuLecture[] }) {
 
 function EjuRow({ l, get }: { l: EjuLecture; get: Get }) {
   const w = get(watchedKey(l.idx)) === true;
-  const r = get(reviewKey(l.idx)) === true;
+  const r = Boolean(get(reviewKey(l.idx)));
   const { head, sub } = splitTitle(l.title);
   return (
     <li className={"grid grid-cols-[auto_1fr_auto] gap-x-3 gap-y-2 px-4 py-3 sm:px-5 lg:grid-cols-[auto_minmax(0,1fr)_3.5rem_auto_16rem] lg:items-center " + (l.tier === "패스" ? "bg-stone-50/60" : "")} data-lecture={l.idx}>
@@ -237,12 +236,13 @@ function EjuRow({ l, get }: { l: EjuLecture; get: Get }) {
       <span className="text-right text-sm tnum text-slate-500" data-dur title="영상 길이">{clock(l.dur)}</span>
       <div className="col-span-2 col-start-2 flex gap-2 lg:contents">
       <button
-        onClick={() => setProgress(reviewKey(l.idx), !r)}
+        onClick={() => r ? clearProgress(reviewKey(l.idx)) : setProgress(reviewKey(l.idx), true)}
         aria-pressed={r}
+        aria-label={`#${l.no} ${head} 복습 표시`}
         className={"inline-flex h-9 shrink-0 items-center gap-1.5 justify-self-start whitespace-nowrap rounded-lg border px-2.5 text-sm font-semibold transition " + (r ? "border-amber-400 bg-amber-100 text-amber-900" : "border-slate-200 bg-white text-slate-500 hover:border-slate-400 hover:text-slate-700")}
         data-review
       >
-        <Flag aria-hidden className={"size-3.5 " + (r ? "fill-amber-500 text-amber-700" : "")} />복습필요
+        <Flag aria-hidden className={"size-3.5 " + (r ? "fill-amber-500 text-amber-700" : "")} />복습 표시
       </button>
       <Memo idx={l.idx} label={`#${l.no} ${head} 복습 메모`} saved={typeof get(memoKey(l.idx)) === "string" ? (get(memoKey(l.idx)) as string) : ""} />
       </div>
