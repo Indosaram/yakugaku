@@ -20,6 +20,7 @@ import { JuyoGroup, JuyoProblem } from "./pages/Juyo";
 import { NotePage } from "./pages/Notes";
 import { EjuLecturePage, EjuList } from "./pages/Eju";
 import Checklist from "./pages/Checklist";
+import Review from "./pages/Review";
 import Exam from "./pages/Exam";
 import { BooksHome, GrammarUnit, IdiomsPage } from "./pages/Books";
 import { YogoDeckPage, YotenDeckPage, YotenHome } from "./pages/Yoten";
@@ -191,6 +192,7 @@ export default function App() {
           <Route path="/exam" element={<Exam />} />
           <Route path="/check" element={<Checklist />} />
           <Route path="/sync" element={<SyncPage />} />
+          <Route path="/review" element={<Review />} />
           <Route
             path="*"
             element={
