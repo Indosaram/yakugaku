@@ -230,7 +230,7 @@ export default function ReviewHome() {
             </div>
             {dueByDeck.length === 0 ? (
               <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">
-                밀린 카드가 없어요.
+                만기 카드가 없어요.
               </p>
             ) : (
               <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">

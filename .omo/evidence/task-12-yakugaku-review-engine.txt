@@ -1,24 +1,29 @@
 TASK 12 - documented stored keys vs. keys present in src
-code scope: 91 tracked files under src
+code scope: all tracked files under src (HEAD b9161bc)
 
-A. code -> docs (every key in code appears in README/DESIGN)
-  OK   srs:card:<set>:<deck>:<q>      used in src/srs-card.ts
-  OK   srs:log:<YYYY-MM-DD>           used in src/srs-card.ts, src/review-session.ts
-  OK   srs:meta:new:<YYYY-MM-DD>      used in src/srs-card.ts, src/review-session.ts, src/pages/ReviewHome.tsx
-  OK   mark:card:<set>:<deck>:<q>     used in src/marks.tsx
-  OK   note:review:<id>               used in src/pages/Notes.tsx
-  OK   yk-review-session              used in src/review-session.ts
+A. code -> docs (every key in code appears in README.md / DESIGN.md)
+  OK   srs:card:<set>:<deck>:<q>      src/srs-card.ts:17            README:38
+  OK   srs:log:<YYYY-MM-DD>           src/srs-card.ts:21            README:39
+  OK   srs:meta:new:<YYYY-MM-DD>      src/srs-card.ts:25            README:40
+  OK   mark:card:<set>:<deck>:<q>     src/marks.tsx                 README:34
+  OK   note:review:<id>               src/pages/Notes.tsx:17        README:43
+  OK   eju:review:<idx>               src/pages/Eju.tsx:25          README:44
+  OK   yk-review-session              src/review-session.ts:18      README:42
 
 B. docs -> code (every documented key exists in src)
-  OK   srs:card:                      present in src
-  OK   srs:log:                       present in src
-  OK   srs:meta:new:                  present in src
-  OK   mark:                          present in src
-  OK   note:review:                   present in src
-  OK   yk-review-session              present in src
+  OK   srs:card: / srs:log: / srs:meta:new: / mark: / note:review: / eju:review: / yk-review-session
+       each has exactly one definition site; no orphan documentation.
 
 C. README test command matches package.json
   package.json test = "TZ=Asia/Seoul bun test"
   README states it  = true
+
+D. srs:log: is never pruned
+  only writer of a removal is src/review-session.ts:62, which reads srs:log:/srs:meta:new: as numbers.
+  undo writes numeric 0 instead of deleting the key (plan task 18c).
+  src/pages/ReviewHome.tsx:95 prunes only srs:meta:new: keys older than 60 days.
+
+E. test run
+  bun run test -> 108 pass, 0 fail, 13244 expect() calls, 6 files
 
 RESULT PASS

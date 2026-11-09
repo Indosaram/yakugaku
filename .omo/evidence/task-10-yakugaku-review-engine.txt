@@ -1,0 +1,36 @@
+TASK 10 - lecture and note items join the same daily queue as due cards
+
+Environment
+  worktree /Users/indo/code/project/yakugaku-wt/rev-w3 @ b9161bc
+  vite dev on 127.0.0.1:5173 with VITE_SYNC_URL=http://127.0.0.1:59999 (unreachable on purpose)
+  so localStorage is isolated and nothing can be overwritten by a server vault.
+  The shared production vault (15D2YAK...) was verified untouched before and after: 30 keys, 0 srs:.
+
+Setup
+  injected hoshi-eigo-progress-v1 = {"eju:review:1":true,"eju:review:2":true,"eju:review:3":true}
+  opened #/review/session
+
+Queue composition (measured in-page)
+  session cards = 18
+  cards with deck "lecture:lecture" = 3
+  so the 3 flagged lectures sit in the SAME session behind the 15 fresh cards.
+
+Acceptance run (real UI clicks: 보기 then 알맞음, 33 interactions)
+  each of the 18 cards was revealed and graded in one continuous session.
+  after the last grade the page showed:
+    "복습을 마쳤어요 18장 중 18장을 채점했어요."
+    tally row rendered with 모름/어려움/알맞음/쉬움
+
+Flag cleanup (the acceptance criterion)
+  remainingFlags = 0        (no eju:review:* or note:review:* left true)
+  srs:log:2026-11-09 = 18   (all 18 items counted for the day)
+
+Checklist cross-check
+  #/check renders 75 button[data-review] elements with aria-pressed true = 0
+  -> the lecture review marks are visibly cleared in the UI, not just in storage.
+
+Evidence image
+  task-10-yakugaku-review-engine.png  (1440x1100 screenshot of the lecture card
+  with "EJU #1" title, 강의·노트 열기 button, and the 4 grade buttons)
+
+RESULT PASS

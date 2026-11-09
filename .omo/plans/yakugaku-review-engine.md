@@ -270,23 +270,23 @@ Your next move: 승인하면 `/ulw-execute yakugaku-review-engine` 으로 실행
   QA scenarios: happy — 왕복 스크린샷 2장 + 네트워크 로그. failure — 오프라인 채점 후 재연결 시 `yk-sync-pending` 비워지고 서버 반영. Evidence `.omo/evidence/task-13-yakugaku-review-engine.md`
   Commit: N | (검증 전용)
 
-- [ ] 14. 시딩 상태를 첫 채점이 실제로 소비하도록 수정 (IS-5)
+- [x] 14. 시딩 상태를 첫 채점이 실제로 소비하도록 수정 (IS-5)
   What to do: F4 검토에서 `applyGrade` 가 `readSrs(id) ?? init(today)` 로 시작해 T4 가 계산한 시딩 상태를 버리는 것을 확인했다. `resolveDrift(current, mark, markTimestamp, today)` 를 `applyGrade` 안에서도 사용해, `srs:` 가 아직 없는 기존 ○ 카드는 시딩된 `ivl=7` 에서 전진하고, `state.m !== 当前 mark` 인 드리프트도 재시딩 후 채점한다. mark 시각은 `itemsFor([markKey(id)])[0]?.t` 로 읽는다.
   Closes: IS-5
   Acceptance criteria: ○ 카드 첫 `o` 채점 후 `ivl` 이 7 다음 칸, 방금 ×로 바꾼 카드의 `o` 채점이 7칸을 넘지 않음. 테스트 2건 추가.
-- [ ] 15. 큐에 mark 시각을 전달해 오래된 ○ 카드를 밀린 것으로 집계 (IS-5)
+- [x] 15. 큐에 mark 시각을 전달해 오래된 ○ 카드를 밀린 것으로 집계 (IS-5)
   What to do: `buildQueue` 가 `resolveDrift(current, mark, undefined, today)` 로 시각을 버려 모든 기존 ○ 카드가 오늘 만기가 되던 문제. T4 규칙(`o` → mark 시각 + 7일, 시각 없으면 오늘)대로 시각을 넘긴다. `buildQueue` 는 순수 함수로 유지한다.
   Closes: IS-5
   Acceptance criteria: 30일 전 ○ 표시 카드가 backlog 로 잡히고, 시각 없는 ○ 는 오늘 만기.
-- [ ] 16. 덱별 표를 전체 만기 수로 집계 (IS-3)
+- [x] 16. 덱별 표를 전체 만기 수로 집계 (IS-3)
   What to do: `backlogByDeck` 이 softCap 초과분만 담아 100장 만기일 때 표 합계가 0이 되던 문제. `buildQueue` 에 `dueByDeck`(모든 만기 카드의 덱별 합계)을 추가하고 대시보드 표를 그것으로 그린다. `backlogByDeck` 은 세션 상한용으로 유지한다.
   Closes: IS-3
   Acceptance criteria: 만기 100장/softCap 120 → `dueByDeck` 합계 100·3개 덱, `backlogByDeck` 비어 있음. 만기 200장 → `dueByDeck` 합계 200.
-- [ ] 17. 인강·노트 복습 항목을 실제 큐와 세션에 연결 (IS-4)
+- [x] 17. 인강·노트 복습 항목을 실제 큐와 세션에 연결 (IS-4)
   What to do: F4 검토에서 `buildLectureItems` 에 호출자가 하나도 없고, `Review.tsx` 가 `queue.lectures` 를 버리는 것을 확인했다. IS-4("복습 필요로 표시한 항목과 오늘 만기된 카드가 같은 하루 큐에 함께 뜬다")가 전혀 이행되지 않은 상태였다. UI 레이어에서 강의·노트 데이터를 읽어 `buildQueue` 에 넘기고, 세션에서 강의 항목을 렌더하며, 채점하면 `eju:review:`·`note:review:` 플래그를 해제한다.
   Closes: IS-4
   Acceptance criteria: 복습 필요 2건이 세션에 뜨고, 채점 후 두 키가 사라지며, 대시보드 남은 수에 포함됨.
-- [ ] 18. 홈 카드 1회 클릭 진입·덱 필터 세션 분리·되돌리기 로그 보존 (IS-1, IS-2)
+- [x] 18. 홈 카드 1회 클릭 진입·덱 필터 세션 분리·되돌리기 로그 보존 (IS-1, IS-2)
   What to do: (a) 홈 오늘 카드가 대시보드로 가 두 번 눌러야 하던 것을 `/review/session` 직접 링크로. (b) 저장된 세션이 덱 필터를 기억하지 않아 덱 백로그 행을 눌러도 혼합 세션이 열리던 문제 — `SessionState` 에 `deckFilter` 를 저장하고 다르면 새 세션. (c) 되돌리기가 `srs:log:<today>` 를 tombstone 으로 지워 다른 기기 기록을 덮을 수 있던 문제 — 삭제 대신 `0` 을 쓴다(`srs:log` 는 절대 정리하지 않는다는 제약).
   Closes: IS-1, IS-2
   Acceptance criteria: 홈 카드 href = `#/review/session`; 저장 세션 필터 불일치 시 null 반환 테스트; 되돌리기 후 `srs:log:<today>` 키가 존재하고 값 0.
