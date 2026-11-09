@@ -67,7 +67,7 @@ export function Logo() {
 }
 
 const navCls = (active: boolean) =>
-  "px-3 py-2 rounded-lg text-sm transition " + (active ? "bg-indigo-50 text-indigo-800 font-semibold" : "text-slate-600 hover:bg-stone-100 hover:text-slate-900");
+  "whitespace-nowrap px-2.5 py-2 rounded-lg text-sm transition " + (active ? "bg-indigo-50 text-indigo-800 font-semibold" : "text-slate-600 hover:bg-stone-100 hover:text-slate-900");
 
 function SyncBadge() {
   const s = useSync();
