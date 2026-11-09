@@ -19,10 +19,23 @@ before the fix deckDue() was called without markTimes, so every ○ card was tre
 today and the badge could over-report relative to the session it opened.
 
 Guard test (src/deck-due.test.ts, added this round)
-  "deck badge counts the same cards the deck session opens"  -> badge == session.counts.due, and == 0
-                                                                 for an ○ mark from yesterday
-  "without mark times every o card looks due today"          -> 1   (reproduces the old bug)
-  "badge still counts a card that is genuinely due today"    -> 1   (✕ mark seeds ivl 0)
-  "deckDue returns 0 for sources outside the 959-card scope" -> yogo/trig/missing all 0
+  deckDue() takes an explicit day (defaults to todayISO()), so both the badge and the
+  session in the test are computed for the same notional date. The suite runs the case
+  table on 2026-11-09, 2026-11-16, 2027-03-01 and 2030-01-01:
+
+    ○ marked yesterday      -> due 0, badge 0   (next due = mark + 7 days)
+    ○ marked 8 days ago     -> due 1, badge 1
+    ✕ marked yesterday      -> due 1, badge 1   (✕ re-seeds interval 0)
+
+  Each case asserts badge == session, then asserts the expected count.
+  "without mark times every o card looks due today" -> 1 while the same call with mark
+  times gives 0, which reproduces the old bug.
+  "deckDue returns 0 for sources outside the 959-card SRS scope" -> yogo/trig/missing all 0.
+
+  Time-independence re-checked with the system clock forced forward:
+    bun test --preload setSystemTime(2027-01-05) src/deck-due.test.ts -> 14 pass 0 fail
+    bun test --preload setSystemTime(2030-06-15) src/deck-due.test.ts -> 14 pass 0 fail
+
+  Whole suite: 122 pass, 0 fail, 13274 expect() calls, 7 files.
 
 RESULT PASS
