@@ -157,7 +157,7 @@ export default function ReviewHome() {
 
             <div className="mt-5 flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center">
               {queueSize > 0 ? (
-                <Link to="/review" className={btn.primary + " w-full sm:w-auto"}>
+                <Link to="/review/session" className={btn.primary + " w-full sm:w-auto"}>
                   복습 시작
                   <ArrowRight aria-hidden className="size-4" />
                 </Link>
@@ -258,7 +258,7 @@ export default function ReviewHome() {
                       <tr key={row.key} className="transition hover:bg-stone-50">
                         <td className="min-w-0 p-0">
                           <Link
-                            to={`/review?deck=${encodeURIComponent(row.key)}`}
+                            to={`/review/session?deck=${encodeURIComponent(row.key)}`}
                             className="flex min-h-11 items-center gap-2 px-4 py-2.5 font-medium text-slate-800 hover:text-indigo-700"
                           >
                             <span className="min-w-0 break-words">{row.title}</span>
