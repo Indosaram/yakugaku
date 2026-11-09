@@ -1,0 +1,9 @@
+PASS T14 seed present :: seeded ivl=7 due=2026-10-07
+PASS T14 first o advances past seeded ivl=7 :: ivl 7 -> 30 due=2026-12-09
+PASS T14 drift reseeds instead of keeping ivl=60 :: ivl=60 -> 3 m=o
+PASS T15 30-day-old o is due (backlog) :: total=1 due=1 fresh=0 ids=card:jitan:d1:q1
+PASS T16 dueByDeck sums all 102 due, backlog empty under softCap 120 :: dueByDeck=102 backlog=0 rows=3
+PASS T18b filter mismatch returns null :: same=true other=true
+PASS T18c undo keeps srs:log key at 0 :: value=0
+
+RESULT PASS

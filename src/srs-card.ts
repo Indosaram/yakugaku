@@ -1,6 +1,7 @@
-import { peekProgress, setMany } from "./progress";
+import { itemsFor, peekProgress, setMany } from "./progress";
 import { markKey } from "./marks";
 import { init, review } from "./srs";
+import { resolveDrift } from "./srs-seed";
 import type { Grade, SrsState } from "./srs";
 import type { Mark } from "./marks";
 
@@ -58,9 +59,13 @@ export function writeSrs(id: string, state: SrsState): void {
 }
 
 export function applyGrade(id: string, g: Grade, today: string): void {
-  const prev = readSrs(id);
-  const next = review(prev ?? init(today), g, today);
-  const trulyNew = prev === null && !isMark(peekProgress(markKey(id)));
+  const current = readSrs(id);
+  const markRaw = peekProgress(markKey(id));
+  const mark = isMark(markRaw) ? markRaw : undefined;
+  const markTimestamp = itemsFor([markKey(id)])[0]?.t;
+  const decision = resolveDrift(current, mark, markTimestamp, today);
+  const next = review(decision.seed ? decision.state : current ?? init(today), g, today);
+  const trulyNew = current === null && mark === undefined;
   const entries: Record<string, string | number> = {
     [srsKey(id)]: JSON.stringify(next),
     [markKey(id)]: gradeToMark(g),

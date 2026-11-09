@@ -144,8 +144,8 @@ is today or earlier. Every value below is derived from the keys listed in README
 |---|---|
 | 만기 (due) | card whose `due` is today or earlier, so it enters today's queue |
 | 신규 (fresh) | card with no `srs:` state and no `mark:`; at most 15 a day, minus what `srs:meta:new:` already recorded |
-| 밀린 (backlog) | due cards past the soft cap of 120; fresh cards are reserved first, the rest waits per deck |
-| 신연 (`srs:log`) | the day's grading count at `srs:log:<YYYY-MM-DD>`; the streak and the 14-day bar read only this |
+| 밀린 (backlog) | due cards past the session cap of 120; fresh cards are reserved first, so the rest waits for a later session. The dashboard's per-deck table counts **all** due cards, not just the overflow |
+| 오늘 채점 (`srs:log`) | the day's grading count at `srs:log:<YYYY-MM-DD>`; the streak and the 14-day bar read only this |
 
 ### Grades
 

@@ -1,0 +1,20 @@
+TASK 3 - test runner fails on a broken test and passes when removed
+
+[step 1] injected src/zz-temp-fail.test.ts expecting 1 === 2
+ 108 pass
+ 1 fail
+ 13245 expect() calls
+Ran 109 tests across 7 files. [84.00ms]
+error: script "test" exited with code 1
+exit=1
+
+[step 2] removed the file
+ 108 pass
+ 0 fail
+ 13244 expect() calls
+Ran 108 tests across 6 files. [82.00ms]
+exit=0
+
+PASS failure produces non-zero exit: true
+PASS clean run exits zero: true
+RESULT PASS

@@ -112,6 +112,43 @@ test("due cards sort oldest first and retain exact whole-day overdue counts", ()
   expect(result.counts.remaining).toBe(0);
 });
 
+test("o mark timestamps preserve overdue dates while missing timestamps fall back to today", () => {
+  const markTimes = Object.freeze({ [markKey(jt1[0].id)]: new Date(2026, 9, 10, 12).getTime() });
+  const result = buildQueue({
+    today: TODAY, decks, newPerDay: 0, markTimes,
+    read: reader({ [markKey(jt1[0].id)]: "o", [markKey(jt1[1].id)]: "o" }),
+  });
+  expect(result.due.map((card) => [card.id, card.due, card.overdue])).toEqual([
+    [jt1[0].id, "2026-10-17", 23],
+    [jt1[1].id, TODAY, 0],
+  ]);
+  expect(result.backlogByDeck).toEqual([]);
+});
+
+test("recent o marks stay out of the queue until seven local calendar days have passed", () => {
+  const id = jt1[0].id;
+  const markTimes = { [markKey(id)]: new Date(2026, 10, 6, 12).getTime() };
+  const args = { decks, read: reader({ [markKey(id)]: "o" }), markTimes, newPerDay: 0 };
+  expect(buildQueue({ ...args, today: TODAY }).due).toEqual([]);
+  expect(buildQueue({ ...args, today: "2026-11-13" }).due.map((card) => [card.id, card.due])).toEqual([
+    [id, "2026-11-13"],
+  ]);
+});
+
+test("mark timestamps reseed drift without overriding a matching stored schedule", () => {
+  const markTimes = Object.fromEntries(jt1.slice(0, 2).map((card) => [markKey(card.id), new Date(2026, 9, 10, 12).getTime()]));
+  const values = {
+    [srsKey(jt1[0].id)]: JSON.stringify({ ...init("2026-11-20"), m: "o" }),
+    [srsKey(jt1[1].id)]: JSON.stringify({ ...init("2026-11-20"), m: "t" }),
+    [markKey(jt1[0].id)]: "o",
+    [markKey(jt1[1].id)]: "o",
+  };
+  const result = buildQueue({ today: TODAY, decks, read: reader(values), markTimes, newPerDay: 0 });
+  expect(result.due.map((card) => [card.id, card.due, card.overdue])).toEqual([
+    [jt1[1].id, "2026-10-17", 23],
+  ]);
+});
+
 test("equal due dates and fresh cards sort by qualified deck key then card id", () => {
   const fixture: Record<string, DeckData> = {
     "yoten/decks.json": { a: { title: "Yoten", cards: [{ q: "a", a: "answer" }] } },
@@ -151,7 +188,7 @@ test("jitan:jt1 filters before counting and contains exactly its twenty real car
 test("an unknown deck filter returns empty arrays and entirely zero counts", () => {
   const result = buildQueue({ today: TODAY, decks, read: reader(allDue), deckFilter: "jitan:missing", lectures });
   expect(result).toEqual({
-    due: [], fresh: [], lectures: [], backlogByDeck: [],
+    due: [], fresh: [], lectures: [], dueByDeck: new Map(), backlogByDeck: [],
     counts: { due: 0, fresh: 0, lectures: 0, capped: false, remaining: 0, total: 0, newLeft: 0 },
   });
 });
@@ -251,17 +288,79 @@ test("backlog rows exactly count uncapped cards and sum to remaining", () => {
   expect(result.backlogByDeck).toHaveLength(expected.size);
   expect(result.backlogByDeck.reduce((sum, row) => sum + row.count, 0)).toBe(result.counts.remaining);
   expect(result.counts.remaining).toBe(839);
-  for (const [i, row] of result.backlogByDeck.entries()) {
+  expect(result.backlogByDeck.map((row) => row.key)).toEqual([...expected.keys()]);
+  for (const row of result.backlogByDeck) {
     expect(row.count).toBeGreaterThan(0);
     expect(expected.get(row.key)).toBe(row.count);
     const [set, deck] = row.key.split(":");
     expect(row.title).toBe(decks[`${set}/decks.json`][deck].title);
-    if (i > 0) {
-      const previous = result.backlogByDeck[i - 1];
-      expect(previous.count).toBeGreaterThanOrEqual(row.count);
-      if (previous.count === row.count) expect(previous.key < row.key).toBe(true);
-    }
   }
+});
+
+test("one hundred due cards across three decks remain visible below the soft cap", () => {
+  const fixture: Record<string, DeckData> = {
+    "jitan/decks.json": {
+      jt1: { title: "One", cards: Array.from({ length: 40 }, (_, i) => ({ q: String(i), a: "answer" })) },
+      jt2: { title: "Two", cards: Array.from({ length: 35 }, (_, i) => ({ q: String(i), a: "answer" })) },
+      jt3: { title: "Three", cards: Array.from({ length: 25 }, (_, i) => ({ q: String(i), a: "answer" })) },
+    },
+  };
+  const values = Object.fromEntries(Object.entries(fixture["jitan/decks.json"]).flatMap(([deck, data]) => (
+    data.cards.map((card) => [markKey(cardId("jitan", deck, card.q)), "x"])
+  )));
+  const result = buildQueue({ today: TODAY, decks: fixture, read: reader(values), softCap: 120 });
+  expect(result.dueByDeck.size).toBe(3);
+  expect([...result.dueByDeck.values()]).toEqual([
+    { key: "jitan:jt1", title: "One", count: 40 },
+    { key: "jitan:jt2", title: "Two", count: 35 },
+    { key: "jitan:jt3", title: "Three", count: 25 },
+  ]);
+  expect([...result.dueByDeck.values()].reduce((sum, row) => sum + row.count, 0)).toBe(100);
+  expect(result.due).toHaveLength(100);
+  expect(result.backlogByDeck).toEqual([]);
+});
+
+test("two hundred due cards retain all per-deck counts above the soft cap", () => {
+  const fixture: Record<string, DeckData> = {
+    "jitan/decks.json": {
+      jt1: { title: "One", cards: Array.from({ length: 80 }, (_, i) => ({ q: String(i), a: "answer" })) },
+      jt2: { title: "Two", cards: Array.from({ length: 70 }, (_, i) => ({ q: String(i), a: "answer" })) },
+      jt3: { title: "Three", cards: Array.from({ length: 50 }, (_, i) => ({ q: String(i), a: "answer" })) },
+    },
+  };
+  const values = Object.fromEntries(Object.entries(fixture["jitan/decks.json"]).flatMap(([deck, data]) => (
+    data.cards.map((card) => [markKey(cardId("jitan", deck, card.q)), "x"])
+  )));
+  const result = buildQueue({ today: TODAY, decks: fixture, read: reader(values), softCap: 120 });
+  expect(result.dueByDeck.size).toBe(3);
+  expect([...result.dueByDeck.values()].reduce((sum, row) => sum + row.count, 0)).toBe(200);
+  expect(result.due).toHaveLength(120);
+  expect(result.backlogByDeck.reduce((sum, row) => sum + row.count, 0)).toBe(80);
+  expect(result.backlogByDeck).toEqual([
+    { key: "jitan:jt2", title: "Two", count: 30 },
+    { key: "jitan:jt3", title: "Three", count: 50 },
+  ]);
+});
+
+test("all-due and overflow deck rows sort by oldest due day then qualified deck key", () => {
+  const fixture: Record<string, DeckData> = {
+    "jitan/decks.json": {
+      a: { title: "A", cards: [{ q: "a", a: "answer" }] },
+      b: { title: "B", cards: [{ q: "b", a: "answer" }, { q: "c", a: "answer" }] },
+      c: { title: "C", cards: [{ q: "a", a: "answer" }] },
+    },
+  };
+  const values = {
+    ...scheduled(cardId("jitan", "a", "a"), "2026-11-08"),
+    ...scheduled(cardId("jitan", "b", "b"), "2026-11-01"),
+    ...scheduled(cardId("jitan", "b", "c"), "2026-11-08"),
+    ...scheduled(cardId("jitan", "c", "a"), "2026-11-01"),
+  };
+  const args = { today: TODAY, decks: fixture, read: reader(values) };
+  const result = buildQueue({ ...args, softCap: 0 });
+  expect([...result.dueByDeck.keys()]).toEqual(["jitan:b", "jitan:c", "jitan:a"]);
+  expect(result.backlogByDeck.map((row) => row.key)).toEqual(["jitan:b", "jitan:c", "jitan:a"]);
+  expect(buildQueue({ ...args, softCap: 2 }).backlogByDeck.map((row) => row.key)).toEqual(["jitan:a", "jitan:b"]);
 });
 
 test("fresh quota is reserved first so backlog cannot starve fifteen new cards", () => {

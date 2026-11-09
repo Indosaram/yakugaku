@@ -6,6 +6,7 @@ export type Tally = { x: number; t: number; o: number; e: number };
 export type Snapshot = { key: string; value: string | null };
 export type SessionState = {
   today: string;
+  deckFilter?: string;
   cards: SessionCard[];
   idx: number;
   shown: boolean;
@@ -16,9 +17,10 @@ export type SessionState = {
 
 export const SESSION_KEY = "yk-review-session";
 
-export function start(cards: SessionCard[], today: string): SessionState {
+export function start(cards: SessionCard[], today: string, deckFilter?: string): SessionState {
   return {
     today,
+    deckFilter,
     cards,
     idx: 0,
     shown: false,
@@ -57,7 +59,7 @@ export function undo(s: SessionState): SessionState {
   if (!last) return s;
   setMany(Object.fromEntries(last.snapshot.map(({ key, value }) => [
     key,
-    value === null ? undefined : key.startsWith("srs:log:") || key.startsWith("srs:meta:new:") ? Number(value) : value,
+    key.startsWith("srs:log:") || key.startsWith("srs:meta:new:") ? Number(value ?? 0) : value ?? undefined,
   ])));
   return {
     ...s,
@@ -92,6 +94,7 @@ function isObject(value: unknown): value is Record<string, unknown> {
 
 function isSession(value: unknown): value is SessionState {
   if (!isObject(value) || typeof value.today !== "string" || !Array.isArray(value.cards)) return false;
+  if (value.deckFilter !== undefined && typeof value.deckFilter !== "string") return false;
   if (!value.cards.every((card: unknown) => isObject(card)
     && typeof card.id === "string" && typeof card.front === "string" && typeof card.back === "string"
     && typeof card.deck === "string" && typeof card.fresh === "boolean")) return false;
@@ -105,12 +108,12 @@ function isSession(value: unknown): value is SessionState {
       && typeof snapshot.key === "string" && (snapshot.value === null || typeof snapshot.value === "string")));
 }
 
-export function resume(today: string): SessionState | null {
+export function resume(today: string, deckFilter?: string): SessionState | null {
   try {
     const raw = localStorage.getItem(SESSION_KEY);
     if (raw === null) return null;
     const state: unknown = JSON.parse(raw);
-    if (isSession(state) && state.today === today) return state;
+    if (isSession(state) && state.today === today && state.deckFilter === deckFilter) return state;
   } catch {
     // Invalid saved JSON is discarded below, just like an invalid shape or stale day.
   }

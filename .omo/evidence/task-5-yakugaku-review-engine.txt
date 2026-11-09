@@ -1,0 +1,11 @@
+TASK 5 - 959-card all-due store: counts, cap, and corrupt JSON tolerance
+seeded keys=1918 (959 srs + 959 mark)
+counts total=959 due(queued)=120 fresh=0 capped=true
+dueByDeck rows=42 sum=959
+backlogByDeck rows=36 sum=839
+queued + backlog = 959
+PASS dueByDeck sums to all 959 due cards: true
+PASS corrupt srs JSON handled without throwing: true
+corrupt srs keeps a mark so it stays scheduled, not fresh: queued=true
+PASS corrupt srs with no mark falls back to fresh: true
+RESULT PASS

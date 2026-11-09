@@ -3,10 +3,11 @@ import { Link, useSearchParams } from "react-router-dom";
 
 import { todayISO } from "../srs";
 import { clear, grade, resume, reveal, save, start, summary, undo, type SessionCard, type SessionState } from "../review-session";
-import { buildQueue, SRS_SOURCES, type BuildResult, type DeckData } from "../review-queue";
-import { peekProgress } from "../progress";
-import { loadData } from "../data/remote";
+import { buildQueue, type DeckData, type LectureItem } from "../review-queue";
+import { allKeys, itemsFor, peekProgress, setMany } from "../progress";
+import { cardId, dayKey } from "../srs-card";
 import { PageTitle, btn } from "../components/ui";
+import { buildLectureItems, loadReviewData, scheduledReviews } from "./Notes";
 
 const GRADES = [
   { g: "x" as const, label: "모름", key: "1" },
@@ -35,31 +36,30 @@ export default function Review() {
 
   const [session, setSession] = useState<SessionState | null>(null);
   const [subs, setSubs] = useState<Record<string, string>>({});
-  const [nextDue, setNextDue] = useState<string | null>(null);
+  const [decks, setDecks] = useState<Record<string, DeckData> | null>(null);
+  const [lectureItems, setLectureItems] = useState<LectureItem[]>([]);
   const [error, setError] = useState<Error | undefined>();
   const [ready, setReady] = useState(false);
+  const scheduled = useMemo(
+    () => decks ? scheduledReviews(decks, today, deckFilter) : [],
+    [decks, session, today, deckFilter],
+  );
+  const nextDue = scheduled.find((item) => item.due > today)?.due ?? null;
 
   useEffect(() => {
     let alive = true;
+    setReady(false);
+    setError(undefined);
+    setSession(null);
     (async () => {
-      const saved = resume(today);
-      if (saved) {
-        if (alive) {
-          setSession(saved);
-          setReady(true);
-        }
-        return;
-      }
       try {
-        const decks: Record<string, DeckData> = {};
-        for (const src of SRS_SOURCES) {
-          decks[src] = await loadData<DeckData>(src);
-        }
-        const full: BuildResult = buildQueue({ today, decks, read: peekProgress });
-        const queue = deckFilter === undefined
-          ? full
-          : buildQueue({ today, decks, read: peekProgress, deckFilter });
-        const cards: SessionCard[] = [...queue.due, ...queue.fresh].map((item) => ({
+        const data = await loadReviewData();
+        if (!alive) return;
+        const lectures = buildLectureItems(data.lectures, data.notes, peekProgress);
+        const markTimes = Object.fromEntries(itemsFor(allKeys()).map((item) => [item.k, item.t]));
+        const queue = buildQueue({ today, decks: data.decks, read: peekProgress, markTimes, lectures, deckFilter });
+        const items = [...queue.due, ...queue.fresh, ...queue.lectures];
+        const cards: SessionCard[] = items.map((item) => ({
           id: item.id,
           front: item.front,
           back: item.back,
@@ -67,14 +67,25 @@ export default function Review() {
           fresh: item.fresh,
         }));
         const subMap: Record<string, string> = {};
-        for (const item of [...queue.due, ...queue.fresh]) {
-          if (item.sub) subMap[item.id] = item.sub;
+        for (const [src, source] of Object.entries(data.decks)) {
+          for (const [deckId, deck] of Object.entries(source)) {
+            for (const card of deck.cards) {
+              if (card.s) subMap[cardId(src.split("/")[0], deckId, card.q)] = card.s;
+            }
+          }
         }
-        const upcoming = full.due[0]?.due ?? null;
-        if (!alive) return;
+        const saved = resume(today, deckFilter);
+        const next = saved && !saved.finished ? {
+          ...saved,
+          cards: [...saved.cards, ...cards.filter((card) => card.deck === "lecture:lecture"
+            && !saved.cards.some((existing) => existing.id === card.id))],
+        } : start(cards, today, deckFilter);
+        setDecks(data.decks);
+        setLectureItems(buildLectureItems(data.lectures, data.notes, () => true));
         setSubs(subMap);
-        setNextDue(upcoming);
-        setSession(start(cards, today));
+        setSession(next);
+        if (next.finished) clear();
+        else save(next);
         setReady(true);
       } catch (e) {
         if (!alive) return;
@@ -92,22 +103,56 @@ export default function Review() {
 
   const applyGrade = useCallback((g: "x" | "t" | "o" | "e") => {
     const current = sessionRef.current;
-    if (!current || current.finished || !current.shown) return;
-    const next = grade(current, g, today);
+    if (!current || current.finished) return;
+    const card = current.cards[current.idx];
+    const lecture = lectureItems.find((item) => item.id === card.id);
+    if (!current.shown && !lecture) return;
+    let next: SessionState;
+    if (lecture) {
+      const flag = peekProgress(lecture.id);
+      const log = peekProgress(dayKey(today));
+      const snapshot = [
+        { key: lecture.id, value: flag === undefined ? null : JSON.stringify(flag) },
+        { key: dayKey(today), value: log === undefined ? null : String(log) },
+      ];
+      setMany({ [lecture.id]: undefined, [dayKey(today)]: Number(log ?? 0) + 1 });
+      const idx = current.idx + 1;
+      next = {
+        ...current, idx, shown: false,
+        tally: { ...current.tally, [g]: current.tally[g] + 1 },
+        undoStack: [...current.undoStack, { cardId: card.id, snapshot, g }],
+        finished: idx >= current.cards.length,
+      };
+    } else {
+      next = grade(current, g, today);
+    }
     sessionRef.current = next;
     setSession(next);
     save(next);
     if (next.finished) clear();
-  }, [today]);
+  }, [today, lectureItems]);
 
   const applyUndo = useCallback(() => {
     const current = sessionRef.current;
     if (!current || current.undoStack.length === 0) return;
-    const next = undo(current);
+    const last = current.undoStack.at(-1)!;
+    let next: SessionState;
+    if (lectureItems.some((item) => item.id === last.cardId)) {
+      setMany(Object.fromEntries(last.snapshot.map(({ key, value }) => [
+        key, key === dayKey(today) ? Number(value ?? 0) : value === null ? undefined : JSON.parse(value),
+      ])));
+      next = {
+        ...current, idx: current.idx - 1, shown: true,
+        tally: { ...current.tally, [last.g]: current.tally[last.g] - 1 },
+        undoStack: current.undoStack.slice(0, -1), finished: false,
+      };
+    } else {
+      next = undo(current);
+    }
     sessionRef.current = next;
     setSession(next);
     save(next);
-  }, []);
+  }, [today, lectureItems]);
 
   const applyReveal = useCallback(() => {
     const current = sessionRef.current;
@@ -121,7 +166,8 @@ export default function Review() {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.metaKey || event.ctrlKey || event.altKey) return;
       if (isTyping(event.target)) return;
-      const shown = !!sessionRef.current?.shown;
+      const current = sessionRef.current;
+      const shown = !!current?.shown || lectureItems.some((item) => item.id === current?.cards[current.idx]?.id);
       const g = GRADE_KEY[event.key];
       if (g) {
         if (shown) {
@@ -144,7 +190,7 @@ export default function Review() {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [applyGrade, applyUndo, applyReveal]);
+  }, [applyGrade, applyUndo, applyReveal, lectureItems]);
 
   if (!ready) {
     return (
@@ -204,11 +250,13 @@ export default function Review() {
             <li className="rounded-xl bg-stone-100 px-3 py-2">알맞음 <span className="font-semibold tnum">{s.tally.o}</span></li>
             <li className="rounded-xl bg-stone-100 px-3 py-2">쉬움 <span className="font-semibold tnum">{s.tally.e}</span></li>
           </ul>
-          {s.nextDue.length > 0 && (
+          {scheduled.length > 0 && (
             <div className="mt-4 text-sm text-slate-600">
               <p className="font-medium text-slate-700">다음에 볼 카드</p>
               <ul className="mt-1 list-disc pl-5">
-                {s.nextDue.slice(0, 3).map((id) => <li key={id} className="break-all">{id}</li>)}
+                {scheduled.slice(0, 3).map((item) => (
+                  <li key={item.id} className="break-words">{item.title} · {item.due <= today ? "오늘" : item.due}</li>
+                ))}
               </ul>
             </div>
           )}
@@ -222,20 +270,29 @@ export default function Review() {
   const remaining = session.cards.length - session.idx;
   const gradedToday = session.tally.x + session.tally.t + session.tally.o + session.tally.e;
   const sub = subs[card.id];
+  const lecture = lectureItems.find((item) => item.id === card.id);
 
   return (
     <>
       <PageTitle kicker="복습" title="오늘의 복습" />
       <p aria-live="polite" className="text-sm text-slate-600 tnum">남은 {remaining}장 · 오늘 {gradedToday}장</p>
       <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-6">
-        <p className="text-xs font-medium text-slate-500">{card.deck}{card.fresh ? " · 새 카드" : ""}</p>
-        <p className="mt-2 text-lg font-semibold text-slate-900 whitespace-pre-wrap">{card.front}</p>
-        {session.shown ? (
+        <p className="text-xs font-medium text-slate-500">{lecture ? card.id.startsWith("note:") ? "개념 노트" : "EJU 강의" : card.deck}{card.fresh ? " · 새 카드" : ""}</p>
+        <p className="mt-2 text-lg font-semibold text-slate-900 whitespace-pre-wrap">{lecture?.title ?? card.front}</p>
+        {lecture && (
+          <div className="mt-4">
+            <Link to={lecture.href} target="_blank" rel="noopener noreferrer" className={btn.primary}>강의·노트 열기</Link>
+            <p className="mt-2 text-sm text-slate-600">내용을 확인하고 채점하면 복습 표시가 해제돼요.</p>
+          </div>
+        )}
+        {session.shown || lecture ? (
           <>
-            <div className="mt-4 border-t border-slate-200 pt-4">
-              <p className="text-base text-slate-800 whitespace-pre-wrap">{card.back}</p>
-              {sub && <p className="mt-2 text-sm text-slate-600 whitespace-pre-wrap">{sub}</p>}
-            </div>
+            {!lecture && (
+              <div className="mt-4 border-t border-slate-200 pt-4">
+                <p className="text-base text-slate-800 whitespace-pre-wrap">{card.back}</p>
+                {sub && <p className="mt-2 text-sm text-slate-600 whitespace-pre-wrap">{sub}</p>}
+              </div>
+            )}
             <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
               {GRADES.map((item) => (
                 <button key={item.g} type="button" onClick={() => applyGrade(item.g)} className={btn.secondary}>
@@ -256,7 +313,7 @@ export default function Review() {
           >
             되돌리기
           </button>
-          <span className="text-xs text-slate-400">Space 보기 · 1-4 채점 · U 되돌리기</span>
+          <span className="text-xs text-slate-400">{lecture ? "1-4 채점 · U 되돌리기" : "Space 보기 · 1-4 채점 · U 되돌리기"}</span>
         </div>
       </div>
     </>

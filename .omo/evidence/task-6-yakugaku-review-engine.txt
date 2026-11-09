@@ -1,0 +1,8 @@
+TASK 6 - five-card session (o,o,x,t,e), undo twice, corrupt-session recovery
+after 5 grades -> tally={"x":1,"t":1,"o":2,"e":1} idx=5 done=undefined
+after undo #1 -> tally={"x":1,"t":1,"o":2,"e":0} idx=4
+after undo #2 -> tally={"x":1,"t":0,"o":2,"e":0} idx=3
+PASS undo twice returns to index 3: true
+srs:log keys after undo: 1 (never pruned: true)
+PASS corrupt session JSON yields no resume (safe restart): true
+RESULT PASS

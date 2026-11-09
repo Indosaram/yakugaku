@@ -1,0 +1,24 @@
+TASK 12 - documented stored keys vs. keys present in src
+code scope: 91 tracked files under src
+
+A. code -> docs (every key in code appears in README/DESIGN)
+  OK   srs:card:<set>:<deck>:<q>      used in src/srs-card.ts
+  OK   srs:log:<YYYY-MM-DD>           used in src/srs-card.ts, src/review-session.ts
+  OK   srs:meta:new:<YYYY-MM-DD>      used in src/srs-card.ts, src/review-session.ts, src/pages/ReviewHome.tsx
+  OK   mark:card:<set>:<deck>:<q>     used in src/marks.tsx
+  OK   note:review:<id>               used in src/pages/Notes.tsx
+  OK   yk-review-session              used in src/review-session.ts
+
+B. docs -> code (every documented key exists in src)
+  OK   srs:card:                      present in src
+  OK   srs:log:                       present in src
+  OK   srs:meta:new:                  present in src
+  OK   mark:                          present in src
+  OK   note:review:                   present in src
+  OK   yk-review-session              present in src
+
+C. README test command matches package.json
+  package.json test = "TZ=Asia/Seoul bun test"
+  README states it  = true
+
+RESULT PASS

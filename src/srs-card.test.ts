@@ -109,6 +109,64 @@ test("a card with mark:x but no srs: is not counted as new", () => {
   expect(peekProgress(markKey(id))).toBe("t");
 });
 
+test("the first o grade advances from a lazy o seed at seven days to thirty days", () => {
+  const id = "card:jitan:probe:seeded-o";
+  const today = "2031-04-04";
+  setMany({ [markKey(id)]: "o" });
+  const before = num(newKey(today));
+  expect(readSrs(id)).toBeNull();
+
+  applyGrade(id, "o", today);
+
+  expect(readSrs(id)).toEqual({
+    due: "2031-05-04", ivl: 30, ease: 2, reps: 1, lapses: 0, last: today, m: "o",
+  });
+  expect(num(newKey(today))).toBe(before);
+});
+
+test("grading o after a deck mark changes from o to x reseeds a sixty-day schedule", () => {
+  const id = "card:jitan:probe:drifted-x";
+  const today = "2031-05-05";
+  writeSrs(id, { due: "2031-07-04", ivl: 60, ease: 2.8, reps: 8, lapses: 2, last: today, m: "o" });
+  setMany({ [markKey(id)]: "x" });
+  const before = num(newKey(today));
+
+  applyGrade(id, "o", today);
+
+  const after = readSrs(id)!;
+  expect(after.ivl).toBeLessThanOrEqual(7);
+  expect(after).toEqual({
+    due: "2031-05-08", ivl: 3, ease: 2, reps: 1, lapses: 0, last: today, m: "o",
+  });
+  expect(num(newKey(today))).toBe(before);
+});
+
+test("a cleared mark resets the schedule without consuming a new-card quota", () => {
+  const id = "card:jitan:probe:cleared-mark";
+  const today = "2031-06-06";
+  writeSrs(id, { due: "2031-08-05", ivl: 60, ease: 2, reps: 8, lapses: 0, last: today, m: "o" });
+  expect(peekProgress(markKey(id))).toBeUndefined();
+  const before = num(newKey(today));
+
+  applyGrade(id, "o", today);
+
+  expect(readSrs(id)!.ivl).toBe(3);
+  expect(readSrs(id)!.reps).toBe(1);
+  expect(num(newKey(today))).toBe(before);
+});
+
+test("the first o grade advances from a lazy t seed without consuming a new-card quota", () => {
+  const id = "card:jitan:probe:seeded-t";
+  const today = "2031-07-07";
+  setMany({ [markKey(id)]: "t" });
+  const before = num(newKey(today));
+
+  applyGrade(id, "o", today);
+
+  expect(readSrs(id)!.ivl).toBe(7);
+  expect(num(newKey(today))).toBe(before);
+});
+
 test("all 959 card keys across the three decks fit in 400 chars", async () => {
   let total = 0;
   const tooLong: string[] = [];

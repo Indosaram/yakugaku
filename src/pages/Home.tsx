@@ -1,13 +1,13 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, BookOpenText, Calculator, CalendarCheck2, ClipboardCheck, FileText, FlaskConical, Languages, Layers, ListChecks, MoveUpRight, PlayCircle, Sigma, Target, Triangle } from "lucide-react";
-import { loadData, useData, type EjuLecture, type Tiers } from "../data/remote";
-import { peekProgress, useProgress } from "../progress";
+import { useData, type EjuLecture, type Tiers } from "../data/remote";
+import { allKeys, itemsFor, peekProgress, useProgress } from "../progress";
 import { todayISO } from "../srs";
-import { cardId, srsKey } from "../srs-card";
-import { buildQueue, SRS_SOURCES, type DeckData } from "../review-queue";
+import { buildQueue } from "../review-queue";
 import { lessons, papers, vocab } from "../data";
 import { watchedKey } from "./Eju";
+import { buildLectureItems, scheduledReviews, useReviewData } from "./Notes";
 
 const SUBJECTS = [
   {
@@ -92,52 +92,6 @@ const SUBJECTS = [
   },
 ];
 
-const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
-
-function useSrsDecks(): { decks?: Record<string, DeckData>; error?: Error } {
-  const [state, setState] = useState<{ decks?: Record<string, DeckData>; error?: Error }>({});
-  useEffect(() => {
-    let alive = true;
-    Promise.all(SRS_SOURCES.map(async (src) => [src, await loadData<DeckData>(src)] as const))
-      .then((pairs) => {
-        if (alive) setState({ decks: Object.fromEntries(pairs) });
-      })
-      .catch((error: Error) => {
-        if (alive) setState({ error });
-      });
-    return () => {
-      alive = false;
-    };
-  }, []);
-  return state;
-}
-
-// 저장된 SRS 상태의 due 만 읽는다. 깨진 값은 없는 것으로 보고 넘어간다.
-function storedDue(raw: unknown): string | null {
-  if (typeof raw !== "string") return null;
-  try {
-    const parsed = JSON.parse(raw) as { due?: unknown };
-    return typeof parsed?.due === "string" && DATE_RE.test(parsed.due) ? parsed.due : null;
-  } catch {
-    return null;
-  }
-}
-
-// 오늘 큐가 비었을 때 보여줄 가장 가까운 미래 만기일. 없으면 null.
-function nearestDue(decks: Record<string, DeckData>, today: string): string | null {
-  let nearest: string | null = null;
-  for (const src of SRS_SOURCES) {
-    const set = src.split("/")[0];
-    for (const [deckId, deck] of Object.entries(decks[src] ?? {})) {
-      for (const card of deck.cards) {
-        const due = storedDue(peekProgress(srsKey(cardId(set, deckId, card.q))));
-        if (due && due > today && (nearest === null || due < nearest)) nearest = due;
-      }
-    }
-  }
-  return nearest;
-}
-
 function shortKoreanDate(day: string): string {
   const [, month, date] = day.split("-").map(Number);
   return `${month}월 ${date}일`;
@@ -146,16 +100,19 @@ function shortKoreanDate(day: string): string {
 type ReviewToday = { count: number; nearest: string | null };
 
 function useReviewToday(): { value: ReviewToday | null; error?: Error } {
-  const { decks, error } = useSrsDecks();
+  const { data, error } = useReviewData();
   // store 는 값이 아니라 신호다. 채점·동기화 뒤 큐를 다시 계산한다.
   const { store } = useProgress();
   const today = todayISO();
   const value = useMemo<ReviewToday | null>(() => {
-    if (!decks) return null;
-    const queue = buildQueue({ today, decks, read: peekProgress });
-    const count = queue.counts.due + queue.counts.fresh;
-    return { count, nearest: count === 0 ? nearestDue(decks, today) : null };
-  }, [decks, store, today]);
+    if (!data) return null;
+    const lectures = buildLectureItems(data.lectures, data.notes, peekProgress);
+    const markTimes = Object.fromEntries(itemsFor(allKeys()).map((item) => [item.k, item.t]));
+    const queue = buildQueue({ today, decks: data.decks, read: peekProgress, markTimes, lectures });
+    const count = queue.counts.due + queue.counts.fresh + queue.counts.lectures;
+    const nearest = count === 0 ? scheduledReviews(data.decks, today).find((item) => item.due > today)?.due ?? null : null;
+    return { count, nearest };
+  }, [data, store, today]);
   return { value, error };
 }
 
@@ -173,14 +130,14 @@ export default function Home() {
   return (
     <div className="space-y-12">
       <Link
-        to="/review"
+        to="/review/session"
         className="flex min-h-16 items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm hover:bg-stone-50 sm:p-5"
       >
         <span aria-hidden className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-700">
           <CalendarCheck2 className="size-5" />
         </span>
         <span className="min-w-0 flex-1">
-          <span aria-live="polite" className="block text-base font-semibold text-slate-900 tnum">
+          <span className="block text-base font-semibold text-slate-900 tnum">
             {review.error
               ? "오늘 복습"
               : review.value === null
@@ -193,10 +150,10 @@ export default function Home() {
           </span>
           <span className="mt-0.5 block text-sm text-slate-600">
             {review.error
-              ? "복습 현황을 불러오지 못했어요. 대시보드에서 다시 확인하세요."
+              ? "복습 현황을 불러오지 못했어요. 복습 화면에서 다시 확인하세요."
               : review.value && review.value.count > 0
-                ? "만기 카드와 새 카드를 대시보드에서 확인하세요"
-                : "복습 대시보드에서 덱별 현황을 볼 수 있어요"}
+                ? "만기 카드와 새 카드, 복습 표시한 강의·노트를 바로 시작하세요"
+                : "복습 화면에서 다음 일정을 확인할 수 있어요"}
           </span>
         </span>
         <ArrowRight aria-hidden className="size-4 shrink-0 text-slate-300" />

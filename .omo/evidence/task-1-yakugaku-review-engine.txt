@@ -1,0 +1,9 @@
+TASK 1 - SRS interval progression + invalid-date failure
+today=2026-11-09 (todayISO()=2026-11-09)
+init -> due=2026-11-09 ivl=0 reps=0
+after o #1 -> due=2026-11-12 ivl=3 reps=1
+after o #2 -> due=2026-11-23 ivl=14 reps=2
+after o #3 -> due=2027-01-08 ivl=60 reps=3
+PASS monotonic increase: 2026-11-09 < 2026-11-12 < 2026-11-23 < 2027-01-08 => true
+PASS invalid date throws: true (Invalid date: 2026-13-40)
+RESULT PASS

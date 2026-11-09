@@ -1,12 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, CalendarCheck2 } from "lucide-react";
-import { loadData } from "../data/remote";
-import { allKeys, peekProgress, setMany, useProgress } from "../progress";
+import { allKeys, itemsFor, peekProgress, setMany, useProgress } from "../progress";
 import { todayISO } from "../srs";
 import { dayKey } from "../srs-card";
-import { buildQueue, SRS_SOURCES, type DeckData } from "../review-queue";
+import { buildQueue } from "../review-queue";
 import { PageTitle, btn } from "../components/ui";
+import { buildLectureItems, useReviewData } from "./Notes";
 
 const DAY = 86_400_000;
 const NEW_PREFIX = "srs:meta:new:";
@@ -67,26 +67,6 @@ export function staleNewKeys(keys: Iterable<string>, today: string): string[] {
   });
 }
 
-type Decks = Record<string, DeckData>;
-
-function useDecks(): { decks?: Decks; error?: Error } {
-  const [state, setState] = useState<{ decks?: Decks; error?: Error }>({});
-  useEffect(() => {
-    let alive = true;
-    Promise.all(SRS_SOURCES.map(async (src) => [src, await loadData<DeckData>(src)] as const))
-      .then((pairs) => {
-        if (alive) setState({ decks: Object.fromEntries(pairs) });
-      })
-      .catch((error: Error) => {
-        if (alive) setState({ error });
-      });
-    return () => {
-      alive = false;
-    };
-  }, []);
-  return state;
-}
-
 function Stat({ label, value, hint }: { label: string; value: number; hint: string }) {
   return (
     <div className="min-w-0 rounded-xl bg-stone-50 px-3 py-3 text-center sm:px-4" title={hint}>
@@ -97,15 +77,17 @@ function Stat({ label, value, hint }: { label: string; value: number; hint: stri
 }
 
 export default function ReviewHome() {
-  const { decks, error } = useDecks();
+  const { data, error } = useReviewData();
   const { store } = useProgress();
   const today = todayISO();
 
-  const queue = useMemo(
-    () => (decks ? buildQueue({ today, decks, read: peekProgress }) : null),
+  const queue = useMemo(() => {
+    if (!data) return null;
+    const lectures = buildLectureItems(data.lectures, data.notes, peekProgress);
+    const markTimes = Object.fromEntries(itemsFor(allKeys()).map((item) => [item.k, item.t]));
+    return buildQueue({ today, decks: data.decks, read: peekProgress, markTimes, lectures });
     // store 는 값 자체가 아니라 신호다. peekProgress 가 최신 캐시를 읽도록 채점·정리 뒤 다시 계산한다.
-    [decks, store, today],
-  );
+  }, [data, store, today]);
   const activity = useMemo(() => recentActivity(peekProgress, today), [store, today]);
   const streak = useMemo(() => streakDays(peekProgress, today), [store, today]);
 
@@ -120,7 +102,10 @@ export default function ReviewHome() {
   }, []);
 
   const counts = queue?.counts;
-  const queueSize = counts ? counts.due + counts.fresh : 0;
+  const queueSize = counts ? counts.due + counts.fresh + counts.lectures : 0;
+  // dueByDeck 의 삽입 순서는 가장 오래된 만기일, 덱 키 순서로 고정된다.
+  const dueByDeck = queue ? [...queue.dueByDeck.values()] : [];
+  const totalDue = dueByDeck.reduce((sum, row) => sum + row.count, 0);
   const studiedToday = activity[activity.length - 1]?.count ?? 0;
   const total14 = activity.reduce((sum, day) => sum + day.count, 0);
   const max14 = Math.max(1, ...activity.map((day) => day.count));
@@ -128,10 +113,10 @@ export default function ReviewHome() {
   return (
     <div>
       <PageTitle kicker="학습 대시보드" title="오늘의 복습">
-        오늘 만기된 카드와 새 카드, 덱별로 밀린 양을 한 화면에서 확인하고 바로 시작하세요.
+        오늘 만기된 카드와 새 카드, 복습 표시한 강의·노트를 한 화면에서 확인하고 바로 시작하세요.
       </PageTitle>
 
-      {!decks && !error && (
+      {!data && !error && (
         <div className="py-20 text-center text-slate-500" role="status">불러오는 중…</div>
       )}
 
@@ -150,11 +135,12 @@ export default function ReviewHome() {
             </div>
 
             <dl className="mt-4 grid grid-cols-3 gap-3">
-              <Stat label="오늘 복습" value={counts.due} hint="오늘 만기되어 큐에 들어온 카드" />
+              <Stat label="오늘 복습" value={totalDue + counts.lectures} hint="전체 만기 카드와 복습 표시한 강의·노트" />
               <Stat label="새 카드" value={counts.fresh} hint="오늘 처음 꺼낼 카드" />
               <Stat label="밀린 카드" value={counts.remaining} hint="오늘 큐 상한을 넘어 남은 복습" />
             </dl>
 
+            {counts.lectures > 0 && <p className="mt-3 text-sm text-slate-600">강의·노트 {counts.lectures}건 포함</p>}
             <div className="mt-5 flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center">
               {queueSize > 0 ? (
                 <Link to="/review/session" className={btn.primary + " w-full sm:w-auto"}>
@@ -168,7 +154,7 @@ export default function ReviewHome() {
                 {counts.remaining > 0
                   ? "밀린 카드는 아래 덱별 목록에서 바로 시작할 수 있어요."
                   : queueSize > 0
-                    ? "오늘 복습할 카드는 모두 위 숫자에 들어 있어요."
+                    ? `오늘 큐 ${queueSize}장으로 바로 시작할 수 있어요.`
                     : "새 카드는 내일 다시 채워져요."}
               </p>
             </div>
@@ -238,23 +224,26 @@ export default function ReviewHome() {
           </div>
 
           <section aria-labelledby="backlog-heading">
-            <h2 id="backlog-heading" className="mb-3 text-xl font-bold text-slate-900">덱별 밀린 카드</h2>
-            {queue.backlogByDeck.length === 0 ? (
+            <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+              <h2 id="backlog-heading" className="text-xl font-bold text-slate-900">덱별 만기 카드</h2>
+              <p className="text-sm text-slate-600 tnum">전체 만기 카드 {totalDue}장</p>
+            </div>
+            {dueByDeck.length === 0 ? (
               <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">
                 밀린 카드가 없어요.
               </p>
             ) : (
               <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
                 <table className="w-full text-sm">
-                  <caption className="sr-only">덱별 밀린 카드 수</caption>
+                  <caption className="sr-only">덱별 만기 카드 수</caption>
                   <thead>
                     <tr className="border-b border-slate-200 bg-stone-50 text-left text-xs text-slate-500">
                       <th scope="col" className="px-4 py-2.5 font-medium">덱</th>
-                      <th scope="col" className="px-4 py-2.5 text-right font-medium sm:px-5">밀린 카드</th>
+                      <th scope="col" className="px-4 py-2.5 text-right font-medium sm:px-5">만기 카드</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {queue.backlogByDeck.map((row) => (
+                    {dueByDeck.map((row) => (
                       <tr key={row.key} className="transition hover:bg-stone-50">
                         <td className="min-w-0 p-0">
                           <Link
@@ -269,6 +258,12 @@ export default function ReviewHome() {
                       </tr>
                     ))}
                   </tbody>
+                  <tfoot className="border-t border-slate-200 bg-stone-50">
+                    <tr>
+                      <th scope="row" className="px-4 py-2.5 text-left font-medium">합계</th>
+                      <td className="px-4 py-2.5 text-right font-semibold tnum sm:px-5">{totalDue}</td>
+                    </tr>
+                  </tfoot>
                 </table>
               </div>
             )}

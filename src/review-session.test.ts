@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, test } from "bun:test";
-import { allKeys, onLocalChange, peekProgress, setMany } from "./progress";
+import { allKeys, itemsFor, onLocalChange, peekProgress, setMany } from "./progress";
 import { cardId, dayKey, markKey, newKey, srsKey, writeSrs, type Grade } from "./srs-card";
 import {
   SESSION_KEY, capReached, clear, grade, resume, reveal, save, start, summary, undo,
@@ -28,6 +28,7 @@ afterEach(reset);
 test("start initializes a hidden session, or finishes immediately with no cards", () => {
   expect(start(cards, TODAY)).toEqual({
     today: TODAY,
+    deckFilter: undefined,
     cards,
     idx: 0,
     shown: false,
@@ -87,7 +88,7 @@ test("undo-all restores every touched key and nonzero numeric counters exactly",
   expect(state.tally).toEqual({ x: 0, t: 0, o: 0, e: 0 });
 });
 
-test("undo deletes all four previously absent keys in one progress change", () => {
+test("undo of the first grade keeps previously absent log and quota keys at numeric zero", () => {
   const before = storageState();
   const persistedBefore = persistedState();
   const state = grade(reveal(start([cards[0]], TODAY)), "e", TODAY);
@@ -106,12 +107,16 @@ test("undo deletes all four previously absent keys in one progress change", () =
     unsubscribe();
   }
   expect(changes).toEqual([snapshotKeys]);
-  expect(storageState()).toEqual(before);
-  expect(persistedState()).toEqual(persistedBefore);
-  expect(peekProgress(newKey(TODAY))).toBeUndefined();
+  expect(storageState()).toEqual({ ...before, [dayKey(TODAY)]: 0, [newKey(TODAY)]: 0 });
+  expect(persistedState()).toEqual({ ...persistedBefore, [dayKey(TODAY)]: 0, [newKey(TODAY)]: 0 });
+  for (const key of [dayKey(TODAY), newKey(TODAY)]) {
+    expect(peekProgress(key)).toBe(0);
+    expect(Object.hasOwn(persistedState(), key)).toBe(true);
+    expect(itemsFor([key])[0]?.v).toBe("0");
+  }
 });
 
-test("undo restores present values and deletes absent values in one progress change", () => {
+test("undo restores present values and zeroes an absent quota in one progress change", () => {
   setMany({ [markKey(cards[0].id)]: "x", [dayKey(TODAY)]: 4 });
   const before = storageState();
   const state = grade(reveal(start([cards[0]], TODAY)), "t", TODAY);
@@ -128,8 +133,8 @@ test("undo restores present values and deletes absent values in one progress cha
   } finally {
     unsubscribe();
   }
-  expect(changes).toEqual([[srsKey(cards[0].id), markKey(cards[0].id), dayKey(TODAY)]]);
-  expect(storageState()).toEqual(before);
+  expect(changes).toEqual([[srsKey(cards[0].id), markKey(cards[0].id), dayKey(TODAY), newKey(TODAY)]]);
+  expect(storageState()).toEqual({ ...before, [newKey(TODAY)]: 0 });
 });
 
 test("undo decreases the numeric daily log and new-card quota by one", () => {
@@ -202,6 +207,37 @@ test("save and resume retain numeric snapshots so undo still restores counters",
   expect(storageState()).toEqual(before);
 });
 
+test("resume rejects a saved jitan:jt1 session when chem:color is requested", () => {
+  save({ ...start(cards, TODAY), deckFilter: "jitan:jt1" });
+  expect(resume(TODAY, "chem:color")).toBeNull();
+  expect(localStorage.getItem(SESSION_KEY)).toBeNull();
+});
+
+test("start, save, and resume preserve the requested deck filter and progress", () => {
+  const state = reveal(grade(reveal(start(cards, TODAY, "jitan:jt1")), "o", TODAY));
+  expect(state.deckFilter).toBe("jitan:jt1");
+  save(state);
+  expect(JSON.parse(localStorage.getItem(SESSION_KEY)!).deckFilter).toBe("jitan:jt1");
+  expect(resume(TODAY, "jitan:jt1")).toEqual(state);
+});
+
+test("resume rejects switching between full and deck-filtered sessions in either direction", () => {
+  save(start(cards, TODAY));
+  expect(resume(TODAY, "jitan:jt1")).toBeNull();
+  save({ ...start(cards, TODAY), deckFilter: "jitan:jt1" });
+  expect(resume(TODAY)).toBeNull();
+});
+
+test("legacy saved sessions without a deck filter resume only as full sessions", () => {
+  const state = start(cards, TODAY);
+  const legacy = JSON.stringify(state);
+  expect(JSON.parse(legacy).deckFilter).toBeUndefined();
+  localStorage.setItem(SESSION_KEY, legacy);
+  expect(resume(TODAY)).toEqual(state);
+  localStorage.setItem(SESSION_KEY, legacy);
+  expect(resume(TODAY, "jitan:jt1")).toBeNull();
+});
+
 test("resume clears a saved session on day rollover", () => {
   save(start(cards, TODAY));
   expect(localStorage.getItem(SESSION_KEY)).not.toBeNull();
@@ -224,6 +260,8 @@ test("resume rejects malformed fields and clears the local key", () => {
     [],
     4,
     { ...valid, today: 9 },
+    { ...valid, deckFilter: null },
+    { ...valid, deckFilter: 9 },
     { ...valid, cards: {} },
     { ...valid, cards: [null] },
     { ...valid, cards: [{ ...cards[0], fresh: "yes" }] },

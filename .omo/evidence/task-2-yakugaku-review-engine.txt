@@ -1,0 +1,8 @@
+TASK 2 - 959 card ids across three sources; key length <= 400
+jitan/decks.json -> 461 cards
+yoten/decks.json -> 415 cards
+chem/decks.json -> 83 cards
+total=959 unique=959 duplicates=0
+longest srs: key=235 longest mark: key=236 limit=400
+PASS 959 unique and keys within 400: true
+RESULT PASS

@@ -22,16 +22,19 @@ export type BuildArgs = {
   today: string;
   decks: Record<string, DeckData>;
   read: (key: string) => unknown;
+  markTimes?: Readonly<Record<string, number>>;
   lectures?: LectureItem[];
   newPerDay?: number;
   softCap?: number;
   deckFilter?: string;
 };
+export type DeckCount = { key: string; title: string; count: number };
 export type BuildResult = {
   due: QueueItem[];
   fresh: QueueItem[];
   lectures: QueueItem[];
-  backlogByDeck: { key: string; title: string; count: number }[];
+  dueByDeck: Map<string, DeckCount>;
+  backlogByDeck: DeckCount[];
   counts: { due: number; fresh: number; lectures: number; capped: boolean; remaining: number; total: number; newLeft: number };
 };
 
@@ -67,7 +70,13 @@ function byDeck(a: QueueItem, b: QueueItem): number {
   return compare(`${a.set}:${a.deck}`, `${b.set}:${b.deck}`) || compare(a.id, b.id);
 }
 
-export function buildQueue({ today, decks, read, lectures: lectureItems = [], newPerDay = 15, softCap = 120, deckFilter }: BuildArgs): BuildResult {
+/**
+ * Builds a queue without I/O or writes; read supplies values from the caller's snapshot.
+ * markTimes maps full mark:<card-id> keys to progress metadata timestamps in milliseconds.
+ * dueByDeck counts all due cards; backlogByDeck counts only overflow past the session cap.
+ * Both iterate by their oldest due card first, then qualified deck key.
+ */
+export function buildQueue({ today, decks, read, markTimes = {}, lectures: lectureItems = [], newPerDay = 15, softCap = 120, deckFilter }: BuildArgs): BuildResult {
   const due: QueueItem[] = [];
   let fresh: QueueItem[] = [];
   const titles = new Map<string, string>();
@@ -86,7 +95,7 @@ export function buildQueue({ today, decks, read, lectures: lectureItems = [], ne
         const current = parseSrs(read(srsKey(id)));
         const markRaw = read(markKey(id));
         const mark = isMark(markRaw) ? markRaw : undefined;
-        const decision = resolveDrift(current, mark, undefined, today);
+        const decision = resolveDrift(current, mark, markTimes[markKey(id)], today);
         const isFresh = !decision.seed && current === null && mark === undefined;
         const state = decision.seed ? decision.state : current ?? init(today);
         if (!isFresh && state.due > today) continue;
@@ -112,14 +121,19 @@ export function buildQueue({ today, decks, read, lectures: lectureItems = [], ne
   // Reserve new cards first; only due cards beyond the remaining budget become backlog.
   const remainingDue = Math.max(0, softCap - fresh.length);
   const queuedDue = due.slice(0, remainingDue);
-  const backlog = new Map<string, { key: string; title: string; count: number }>();
-  for (const item of due.slice(remainingDue)) {
+  const dueByDeck = new Map<string, DeckCount>();
+  const backlog = new Map<string, DeckCount>();
+  for (const [index, item] of due.entries()) {
     const key = `${item.set}:${item.deck}`;
-    const row = backlog.get(key);
+    const row = dueByDeck.get(key);
     if (row) row.count++;
+    else dueByDeck.set(key, { key, title: titles.get(key)!, count: 1 });
+    if (index < remainingDue) continue;
+    const overflow = backlog.get(key);
+    if (overflow) overflow.count++;
     else backlog.set(key, { key, title: titles.get(key)!, count: 1 });
   }
-  const backlogByDeck = [...backlog.values()].sort((a, b) => b.count - a.count || compare(a.key, b.key));
+  const backlogByDeck = [...backlog.values()];
   const lectures: QueueItem[] = deckFilter === undefined ? lectureItems.map((lecture) => ({
     id: lecture.id, kind: "lecture", set: "lecture", deck: "lecture",
     front: lecture.title, back: "", fresh: false, due: today, overdue: 0,
@@ -129,6 +143,7 @@ export function buildQueue({ today, decks, read, lectures: lectureItems = [], ne
     due: queuedDue,
     fresh,
     lectures,
+    dueByDeck,
     backlogByDeck,
     counts: {
       due: queuedDue.length, fresh: fresh.length, lectures: lectures.length,

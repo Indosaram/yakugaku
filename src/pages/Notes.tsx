@@ -3,9 +3,11 @@ import { Link, useParams } from "react-router-dom";
 import { marked } from "marked";
 import { Flag, PlayCircle } from "lucide-react";
 import "../chem.css";
-import { useData, type EjuLecture } from "../data/remote";
-import { clearProgress, setProgress, useProgress } from "../progress";
-import type { LectureItem } from "../review-queue";
+import { loadData, useData, type EjuLecture } from "../data/remote";
+import { clearProgress, itemsFor, peekProgress, setProgress, useProgress } from "../progress";
+import { cardId, markKey, readSrs } from "../srs-card";
+import { resolveDrift } from "../srs-seed";
+import { SRS_SOURCES, type DeckData, type LectureItem } from "../review-queue";
 import { btn } from "../components/ui";
 import { reviewKey } from "./Eju";
 
@@ -23,6 +25,53 @@ export function buildLectureItems(lectures: EjuLecture[], notes: Note[], read: (
       id: noteReviewKey(n.id), title: n.title, href: `/chem/n/${n.id}`,
     })),
   ];
+}
+
+type ReviewData = { decks: Record<string, DeckData>; lectures: EjuLecture[]; notes: Note[] };
+
+export async function loadReviewData(): Promise<ReviewData> {
+  const [pairs, lectures, notes] = await Promise.all([
+    Promise.all(SRS_SOURCES.map(async (src) => [src, await loadData<DeckData>(src)] as const)),
+    loadData<EjuLecture[]>("eju/index.json"),
+    loadData<Note[]>("notes/index.json"),
+  ]);
+  return { decks: Object.fromEntries(pairs), lectures, notes };
+}
+
+export function useReviewData(): { data?: ReviewData; error?: Error } {
+  const [state, setState] = useState<{ data?: ReviewData; error?: Error }>({});
+  useEffect(() => {
+    let alive = true;
+    loadReviewData().then(
+      (data) => { if (alive) setState({ data }); },
+      (error: Error) => { if (alive) setState({ error }); },
+    );
+    return () => { alive = false; };
+  }, []);
+  return state;
+}
+
+// 큐에서 생략된 미래 만기와 상한 뒤에 남은 카드도 요약에 포함한다.
+export function scheduledReviews(decks: Record<string, DeckData>, today: string, deckFilter?: string) {
+  const cards: { id: string; title: string; deck: string; due: string }[] = [];
+  for (const src of SRS_SOURCES) {
+    const set = src.split("/")[0];
+    for (const [deckId, deck] of Object.entries(decks[src] ?? {})) {
+      const key = `${set}:${deckId}`;
+      if (deckFilter !== undefined && deckFilter !== key) continue;
+      for (const card of deck.cards) {
+        const id = cardId(set, deckId, card.q);
+        const mark = peekProgress(markKey(id));
+        if (mark !== "o" && mark !== "t" && mark !== "x") continue;
+        const current = readSrs(id);
+        const decision = resolveDrift(current, mark, itemsFor([markKey(id)])[0]?.t, today);
+        const state = decision.seed ? decision.state : current!;
+        cards.push({ id, title: card.q, deck: key, due: state.due });
+      }
+    }
+  }
+  const compare = (a: string, b: string) => a < b ? -1 : a > b ? 1 : 0;
+  return cards.sort((a, b) => compare(a.due, b.due) || compare(a.deck, b.deck) || compare(a.id, b.id));
 }
 
 const relatedDecks: Record<string, { href: string; title: string }> = {

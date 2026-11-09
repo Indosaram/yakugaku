@@ -1,0 +1,19 @@
+TASK 4 - seeding from existing marks over the real 959-card catalog
+today=2026-11-09 (mark timestamps in ms)
+
+mark | ts        | ivl | due        | m
+x    | none      | 0   | 2026-11-09 | x
+t    | none      | 1   | 2026-11-09 | t
+o    | none      | 7   | 2026-11-09 | o
+o    | old(-10d) | 7   | 2026-09-07 | o
+
+drift same mark   -> seed=false
+drift changed mark-> seed=true due=2026-11-09 m=x
+drift removed mark-> seed=true
+PASS drift rules: true
+
+mix over 959 cards: x=240 t=240 old-o=240 fresh-o=239
+formula today-due = x+t+old-o = 720 | dueTodayCount = 720
+PASS due count equals formula: true
+PASS corrupt mark handled without throwing: true
+RESULT PASS
