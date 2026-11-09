@@ -226,7 +226,7 @@ export default function Review() {
   return (
     <>
       <PageTitle kicker="복습" title="오늘의 복습" />
-      <p className="text-sm text-slate-600 tnum">남은 {remaining}장 · 오늘 {gradedToday}장</p>
+      <p aria-live="polite" className="text-sm text-slate-600 tnum">남은 {remaining}장 · 오늘 {gradedToday}장</p>
       <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-6">
         <p className="text-xs font-medium text-slate-500">{card.deck}{card.fresh ? " · 새 카드" : ""}</p>
         <p className="mt-2 text-lg font-semibold text-slate-900 whitespace-pre-wrap">{card.front}</p>

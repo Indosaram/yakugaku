@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, NavLink, Route, Routes, useLocation } from "react-router-dom";
-import { BookOpenText, Calculator, ClipboardCheck, Cloud, CloudOff, FileText, FlaskConical, Home as HomeIcon, Languages, Layers, ListChecks, Menu, MoveUpRight, PlayCircle, Sigma, Triangle, X } from "lucide-react";
+import { BookOpenText, Calculator, CalendarCheck2, ClipboardCheck, Cloud, CloudOff, FileText, FlaskConical, Home as HomeIcon, Languages, Layers, ListChecks, Menu, MoveUpRight, PlayCircle, Sigma, Triangle, X } from "lucide-react";
 import SyncPage from "./pages/SyncPage";
 import { useSync } from "./sync";
 import Home from "./pages/Home";
@@ -21,6 +21,7 @@ import { NotePage } from "./pages/Notes";
 import { EjuLecturePage, EjuList } from "./pages/Eju";
 import Checklist from "./pages/Checklist";
 import Review from "./pages/Review";
+import ReviewHome from "./pages/ReviewHome";
 import Exam from "./pages/Exam";
 import { BooksHome, GrammarUnit, IdiomsPage } from "./pages/Books";
 import { YogoDeckPage, YotenDeckPage, YotenHome } from "./pages/Yoten";
@@ -41,6 +42,7 @@ const NAV = [
   { to: "/trig", label: "삼각함수", icon: Triangle },
   { to: "/exam", label: "기출 분석", icon: ClipboardCheck },
   { to: "/check", label: "체크표", icon: ListChecks },
+  { to: "/review", label: "복습", icon: CalendarCheck2 },
 ];
 
 // 영어 과목 안의 보조 메뉴
@@ -101,25 +103,25 @@ export default function App() {
               <span className="block text-xs text-slate-500">호시약대 영어·화학 공부방</span>
             </span>
           </NavLink>
-          <nav aria-label="주 메뉴" className="hidden lg:flex gap-0.5 ml-auto">
+          <nav aria-label="주 메뉴" className="hidden xl:flex gap-0.5 ml-auto">
             {NAV.map((n) => (
               <NavLink key={n.to} to={n.to} end={n.end} className={({ isActive }) => navCls(isActive)}>
                 {n.label}
               </NavLink>
             ))}
           </nav>
-          <span className="ml-auto lg:ml-0"><SyncBadge /></span>
+          <span className="ml-auto xl:ml-0"><SyncBadge /></span>
           <button
             aria-label={open ? "메뉴 닫기" : "메뉴 열기"}
             aria-expanded={open}
-            className="lg:hidden inline-flex size-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 transition hover:bg-stone-100"
+            className="xl:hidden inline-flex size-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 transition hover:bg-stone-100"
             onClick={() => setOpen((o) => !o)}
           >
             {open ? <X aria-hidden className="size-5" /> : <Menu aria-hidden className="size-5" />}
           </button>
         </div>
         {open && (
-          <nav aria-label="주 메뉴" className="reveal lg:hidden border-t border-slate-200 bg-white px-4 py-3 grid grid-cols-2 gap-1">
+          <nav aria-label="주 메뉴" className="reveal xl:hidden border-t border-slate-200 bg-white px-4 py-3 grid grid-cols-2 gap-1">
             {NAV.map((n) => (
               <NavLink
                 key={n.to}
@@ -192,7 +194,8 @@ export default function App() {
           <Route path="/exam" element={<Exam />} />
           <Route path="/check" element={<Checklist />} />
           <Route path="/sync" element={<SyncPage />} />
-          <Route path="/review" element={<Review />} />
+          <Route path="/review" element={<ReviewHome />} />
+          <Route path="/review/session" element={<Review />} />
           <Route
             path="*"
             element={

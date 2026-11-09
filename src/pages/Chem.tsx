@@ -369,7 +369,7 @@ export function ChemDeck({ src = "chem/decks.json", back = ["화학", "/chem"], 
         {due > 0 && (
           <>
             <span className="mb-3 rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-semibold text-indigo-700 tnum">오늘 이 덱: {due}장</span>
-            <Link to={`/review?deck=${set}:${id}`} className={btn.secondary + " mb-3"}>오늘 복습</Link>
+            <Link to={`/review/session?deck=${set}:${id}`} className={btn.secondary + " mb-3"}>오늘 복습</Link>
           </>
         )}
       </div>
