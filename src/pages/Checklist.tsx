@@ -6,6 +6,7 @@ import { clearProgress, peekProgress, setProgress, useProgress, type Value } fro
 import { TierBadge } from "../components/Tier";
 import { PageTitle, Segmented, btn } from "../components/ui";
 import { UNITS, reviewKey, watchedKey } from "./Eju";
+import { todayISO } from "../srs";
 
 // 학습 체크표: EJU 강의(대단원별) + 직접 추가하는 인강/교재 항목
 // 목록은 진도 저장소(custom:courses, 동기화됨)에 두고, 예전 키 yk-custom-courses 에도 계속 같이 써 둔다.
@@ -35,7 +36,7 @@ export default function Checklist() {
     localStorage.setItem(CUSTOM_KEY, JSON.stringify(c));
     setProgress(SYNC_KEY, JSON.stringify(c));
   };
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayISO();
 
   return (
     <div>
