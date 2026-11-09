@@ -26,11 +26,12 @@ export function deckDue(
   decks: Record<string, Deck> | undefined,
   read: (key: string) => unknown,
   times: Readonly<Record<string, number>> = markTimes(),
+  today: string = todayISO(),
 ): number {
   if (!decks || !id || !isSrsSource(src)) return 0;
   const set = src.split("/")[0];
   const result = buildQueue({
-    today: todayISO(),
+    today,
     decks: { [src]: decks } as Record<string, DeckData>,
     read,
     markTimes: times,
