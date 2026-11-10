@@ -9,5 +9,7 @@
   "observability": { "enabled": true },
   "d1_databases": [
     { "binding": "DB", "database_name": "yakugaku-sync", "database_id": "03087471-6f5b-4336-8bc2-7a70258e14f1" }
-  ]
+  ],
+  // 강의 필기 → 개념 노트 구조화. Workers AI 바인딩은 API 키 없이 워커 안에서만 호출된다.
+  "ai": { "binding": "AI" }
 }

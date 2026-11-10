@@ -13,7 +13,13 @@ interface D1 {
   prepare(sql: string): D1Stmt;
   batch(s: D1Stmt[]): Promise<D1Result<unknown>[]>;
 }
-interface Env { DB: D1 }
+interface AiRun {
+  response?: string;
+}
+interface Ai {
+  run(model: string, input: Record<string, unknown>): Promise<AiRun>;
+}
+interface Env { DB: D1; AI: Ai }
 
 const ORIGINS = new Set([
   "https://indosaram.github.io",
@@ -27,6 +33,8 @@ const MAX_ITEMS = 1000;
 const MAX_KEY = 400;
 const MAX_VAL = 20_000;
 const KEEP_SNAPSHOTS = 30;
+const MAX_NOTE_INPUT = 12_000;
+const NOTE_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
 const ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"; // Crockford base32
 
 type Item = { k: string; v: string | null; t: number };
@@ -95,6 +103,40 @@ function validItems(x: unknown): x is Item[] {
     Number.isSafeInteger(it.t) && it.t >= 0);
 }
 
+async function structureNote(env: Env, material: string, title: string) {
+  const system = [
+    "너는 일본 약대 입시(EJU 화학) 학습 노트를 정리하는 조교다.",
+    "사용자가 강의 필기나 교재 원문을 붙여넣으면, 그 내용만으로 한국어 개념 노트를 Markdown 으로 만든다.",
+    "규칙:",
+    "- 입력에 없는 내용을 지어내지 않는다. 확실하지 않으면 쓰지 않는다.",
+    "- 맨 위에 blockquote 한 줄로 이 노트가 무엇을 다루는지 요약한다.",
+    "- '## 핵심 공식' 절에 표를 둔다. 열은 | 한국어 | 일본 시험 용어 | 식·정의 | 세 개다.",
+    "- 일본 시험 용어는 한자와 히라가나 독음을 함께 적는다. 예: モル濃度(のうど)",
+    "- '## 풀이 순서' 절은 번호 목록으로 쓴다. 각 항목은 한 문장으로 끝낸다.",
+    "- 시각 버튼(<button class=\"ts\" data-t=\"...\">)은 넣지 않는다. 원문에 시각 정보가 없기 때문이다.",
+    "- 이모지를 쓰지 않는다. 제목은 ## 와 ### 만 쓴다.",
+    "- 출력은 Markdown 본문만. 설명, 인사말, 코드펜스로 감싼 전체 블록은 넣지 않는다.",
+  ].join("\n");
+  const user = (title ? `주제: ${title}\n\n` : "") + `원문:\n${material}`;
+  const r = await env.AI.run(NOTE_MODEL, {
+    messages: [
+      { role: "system", content: system },
+      { role: "user", content: user },
+    ],
+    max_tokens: 2048,
+  });
+  const note = cleanNote(r?.response ?? "");
+  if (!note) return { error: "empty" };
+  return { note };
+}
+
+export function cleanNote(raw: string): string {
+  let s = raw.trim();
+  const fence = /^```(?:markdown|md)?\s*\n([\s\S]*?)\n```$/.exec(s);
+  if (fence) s = fence[1].trim();
+  return s.replace(/^```(?:markdown|md)?\s*$/gm, "").trim();
+}
+
 async function sync(env: Env, vault: string, since: number, items: Item[]) {
   const stmts: D1Stmt[] = [];
   if (items.length) {
@@ -150,6 +192,15 @@ export default {
         const items = b?.items ?? [];
         if (!b || !Number.isSafeInteger(since) || !validItems(items)) return json({ error: "bad request" }, 400, origin);
         return json(await sync(env, vault, since, items), 200, origin);
+      }
+
+      if (url.pathname === "/v1/note" && req.method === "POST") {
+        const b = await body<{ material?: unknown; title?: unknown }>(req);
+        const material = typeof b?.material === "string" ? b.material.trim() : "";
+        const title = typeof b?.title === "string" ? b.title.trim().slice(0, 120) : "";
+        if (!b || !material) return json({ error: "bad request" }, 400, origin);
+        if (material.length > MAX_NOTE_INPUT) return json({ error: "too long", limit: MAX_NOTE_INPUT }, 413, origin);
+        return json(await structureNote(env, material, title), 200, origin);
       }
 
       if (url.pathname === "/v1/snapshots" && req.method === "POST") {

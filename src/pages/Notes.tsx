@@ -10,6 +10,8 @@ import { resolveDrift } from "../srs-seed";
 import { SRS_SOURCES, type DeckData, type LectureItem } from "../review-queue";
 import { btn } from "../components/ui";
 import { reviewKey } from "./Eju";
+import { listAiNotes, readAiNote, aiNoteItems } from "../ai-notes";
+import { AiNotePage } from "./NoteStudio";
 
 // 한국어 강의 영상 → 한 페이지 개념 노트 (public/data/notes/<id>.md, 목록은 notes/index.json)
 // 본문의 <button class="ts" data-t="초"> 를 누르면 위 영상이 그 시각부터 재생된다.
@@ -23,6 +25,9 @@ export function buildLectureItems(lectures: EjuLecture[], notes: Note[], read: (
     })),
     ...notes.filter((n) => read(noteReviewKey(n.id))).map((n) => ({
       id: noteReviewKey(n.id), title: n.title, href: `/chem/n/${n.id}`,
+    })),
+    ...aiNoteItems(read).filter((n) => read(n.key)).map((n) => ({
+      id: n.key, title: n.title, href: n.href,
     })),
   ];
 }
@@ -89,12 +94,33 @@ function Loading({ error }: { error?: Error }) {
 // 화학 홈에 붙는 목록
 export function NotesSection() {
   const { data } = useNotes();
-  if (!data?.length) return null;
+  const { get } = useProgress();
+  const made = listAiNotes(get);
+  if (!data?.length && !made.length) return null;
   return (
     <>
       <h2 className="mt-10 mb-3 text-xl font-bold text-slate-900">개념 노트 <span className="text-sm font-medium text-slate-500">한국어 강의 영상 정리</span></h2>
+      <p className="mb-3">
+        <Link to="/chem/n" className={btn.secondary} data-note-studio-link>강의 필기를 노트로 만들기</Link>
+      </p>
+      {made.length > 0 && (
+        <ul className="chap-list mb-3" data-ai-notes>
+          {made.map((n, i) => (
+            <li key={n.id}>
+              <Link to={`/chem/n/${n.id}`}>
+                <span className="chap-no">{i + 1}</span>
+                <span>
+                  <span className="t">{n.title}</span>
+                  <br />
+                  <span className="s">AI 정리 노트 · {n.created}</span>
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
       <ul className="chap-list" data-notes>
-        {data.map((n, i) => (
+        {(data ?? []).map((n, i) => (
           <li key={n.id}>
             <Link to={`/chem/n/${n.id}`}>
               <span className="chap-no">{i + 1}</span>
@@ -132,6 +158,9 @@ export function NotePage() {
     el?.addEventListener("click", h);
     return () => el?.removeEventListener("click", h);
   });
+  const aiBody = useMemo(() => (id ? readAiNote(id) : null), [id, get]);
+  const aiMeta = useMemo(() => listAiNotes(get).find((x) => x.id === id), [get, id]);
+  if (aiBody && aiMeta) return <AiNotePage />;
   if (!data || !body) return <Loading error={error ?? e2} />;
   const n = data.find((x) => x.id === id);
   if (!n) return <Loading error={new Error("404")} />;

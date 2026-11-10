@@ -134,6 +134,17 @@ export function backupToServer() {
   return uploadSnapshot("manual");
 }
 
+// 강의 필기 → 개념 노트 구조화. 서버(Workers AI)가 만들고, 키는 브라우저에 없다.
+export async function aiNote(material: string, title: string): Promise<string> {
+  const res = await api<{ note?: string; error?: string; limit?: number }>("/v1/note", {
+    method: "POST",
+    body: JSON.stringify({ material, title }),
+  });
+  if (res.error === "too long") throw new Error(`원문이 너무 길어요. ${(res.limit ?? 0).toLocaleString()}자까지 넣을 수 있어요.`);
+  if (!res.note) throw new Error("노트를 만들지 못했어요. 잠시 뒤 다시 시도해 주세요.");
+  return res.note;
+}
+
 export function startSync() {
   // 전체 초기화 직전 상태를 서버에도 스냅샷으로 남긴다 (실수로 지워도 되살릴 수 있게)
   onBeforeReset(() => { if (state.code) void uploadSnapshot("before-reset").catch((e: Error) => console.warn("초기화 전 서버 백업 실패", e)); });
