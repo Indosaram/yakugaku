@@ -1,254 +1,98 @@
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, BookOpenText, Calculator, CalendarCheck2, ClipboardCheck, FileText, FlaskConical, Languages, Layers, ListChecks, MoveUpRight, PlayCircle, Sigma, Target, Triangle } from "lucide-react";
-import { useData, type EjuLecture, type Tiers } from "../data/remote";
+import { ArrowRight, CalendarCheck2, PlayCircle } from "lucide-react";
+import { useData, type EjuLecture } from "../data/remote";
 import { markTimes, peekProgress, useProgress } from "../progress";
 import { todayISO } from "../srs";
 import { buildQueue } from "../review-queue";
-import { lessons, papers, vocab } from "../data";
+import { papers } from "../data";
 import { watchedKey } from "./Eju";
 import { buildLectureItems, scheduledReviews, useReviewData } from "./Notes";
-
-const SUBJECTS = [
-  {
-    to: "/en",
-    icon: Languages,
-    name: "영어",
-    ja: "英語",
-    color: "bg-indigo-50 text-indigo-700",
-    desc: `B방식 영어 기출 3개년 해설, 왕기초 문법 ${lessons.length}강, 어휘 ${vocab.length}개, 의약 장문`,
-  },
-  {
-    to: "/books",
-    icon: BookOpenText,
-    name: "영어 교재",
-    ja: "文法・熟語",
-    color: "bg-sky-50 text-sky-700",
-    desc: "빈출 영문법·어법 1000제와 영숙어장을 한국어로. 정답과 해설은 따로 접어 두었어요",
-  },
-  {
-    to: "/chem",
-    icon: FlaskConical,
-    name: "화학",
-    ja: "化学",
-    color: "bg-rose-50 text-rose-700",
-    desc: "합격화학 유기편 350문항 해설, 무기화학 교재, 색·기체 암기 카드",
-  },
-  {
-    to: "/eju",
-    icon: PlayCircle,
-    name: "EJU 화학 강의",
-    ja: "講義ノート",
-    color: "bg-amber-50 text-amber-800",
-    desc: "유튜브 EJU화학 75강을 대단원별 한국어 교재로. 강의마다 요약·암기·확인 문제",
-  },
-  {
-    to: "/jitan",
-    icon: Layers,
-    name: "화학 암기 카드",
-    ja: "超！時短演習",
-    color: "bg-emerald-50 text-emerald-700",
-    desc: "超わかる 時短演習 시리즈 28편(무기·유기·고분자·중요 반응식·반반응식)을 한국어 플래시카드로",
-  },
-  {
-    to: "/kyotsu",
-    icon: FileText,
-    name: "공통테스트 2025 화학",
-    ja: "共通テスト",
-    color: "bg-violet-50 text-violet-700",
-    desc: "시험지 PDF와 전 문항 한국어 해설. 공식 정답 기준, 소문항마다 필수/권장/패스",
-  },
-  {
-    to: "/math",
-    icon: Calculator,
-    name: "1분 수학",
-    ja: "大学入試数学",
-    color: "bg-cyan-50 text-cyan-700",
-    desc: "サボテン浪 «1分で攻略» 쇼츠 7편을 문제·신호·풀이 순서로 한국어 정리",
-  },
-  {
-    to: "/vec",
-    icon: MoveUpRight,
-    name: "수학 C 벡터 해설",
-    ja: "数学III+C ベクトル",
-    color: "bg-emerald-50 text-emerald-700",
-    desc: "교재 18~62쪽 내적부터 공간벡터까지 전 문제. 정석 풀이 + ⚡빠른 풀이",
-  },
-  {
-    to: "/nankan",
-    icon: Sigma,
-    name: "난관대 전 패턴",
-    ja: "全パターン解説",
-    color: "bg-indigo-50 text-indigo-700",
-    desc: "サボテン浪 무기화학 57장 + 난관대 수학 130패턴을 한국어로. 장마다 필수/권장/패스",
-  },
-  {
-    to: "/trig",
-    icon: Triangle,
-    name: "삼각함수 공식 테스트",
-    ja: "公式確認テスト",
-    color: "bg-pink-50 text-pink-700",
-    desc: "삼각함수 공식 50문 답지와 플래시카드 퀴즈",
-  },
-];
+import { btn, studyGroups } from "../components/ui";
 
 function shortKoreanDate(day: string): string {
   const [, month, date] = day.split("-").map(Number);
   return `${month}월 ${date}일`;
 }
 
-type ReviewToday = { count: number; nearest: string | null };
+type ReviewToday = { count: number; nearest: string | null; due: number; fresh: number; lectures: number };
 
 function useReviewToday(): { value: ReviewToday | null; error?: Error } {
   const { data, error } = useReviewData();
-  // store 는 값이 아니라 신호다. 채점·동기화 뒤 큐를 다시 계산한다.
   const { store } = useProgress();
   const today = todayISO();
   const value = useMemo<ReviewToday | null>(() => {
     if (!data) return null;
     const lectures = buildLectureItems(data.lectures, data.notes, peekProgress);
-    const times = markTimes();
-    const queue = buildQueue({ today, decks: data.decks, read: peekProgress, markTimes: times, lectures });
-    const count = queue.counts.due + queue.counts.fresh + queue.counts.lectures;
+    const queue = buildQueue({ today, decks: data.decks, read: peekProgress, markTimes: markTimes(), lectures });
+    const { due, fresh, lectures: lectureCount } = queue.counts;
+    const count = due + fresh + lectureCount;
     const nearest = count === 0 ? scheduledReviews(data.decks, today).find((item) => item.due > today)?.due ?? null : null;
-    return { count, nearest };
+    return { count, nearest, due, fresh, lectures: lectureCount };
   }, [data, store, today]);
   return { value, error };
 }
 
 export default function Home() {
-  const { get, store } = useProgress();
+  const { get } = useProgress();
   const review = useReviewToday();
   const { data: eju } = useData<EjuLecture[]>("eju/index.json");
-  const { data: tiers } = useData<Tiers>("tiers.json");
-  const watched = eju?.filter((l) => get(watchedKey(l.idx)) === true).length ?? 0;
-  const nextLecture = eju?.find((l) => l.tier !== "패스" && get(watchedKey(l.idx)) !== true);
-  const chemDone = Object.keys(store).filter((k) => k.startsWith("chem:done:") && store[k] === true).length;
-  const enSolved = Object.entries(store).filter(([k, v]) => /^(lesson|paper|reading):/.test(k) && typeof v === "number").length;
-  const bookSolved = Object.keys(store).filter((k) => k.startsWith("g1000:")).length;
+  const nextLecture = eju?.find((lecture) => lecture.tier !== "패스" && get(watchedKey(lecture.idx)) !== true);
+  const ready = review.value !== null && !review.error;
+  const hasReview = ready && review.value!.count > 0;
 
   return (
-    <div className="space-y-12">
-      <Link
-        to="/review/session"
-        className="flex min-h-16 items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm hover:bg-stone-50 sm:p-5"
-      >
-        <span aria-hidden className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-700">
-          <CalendarCheck2 className="size-5" />
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block text-base font-semibold text-slate-900 tnum">
-            {review.error
-              ? "오늘 복습"
-              : review.value === null
-                ? "오늘 복습 확인 중"
-                : review.value.count > 0
-                  ? `오늘 복습 ${review.value.count}장`
-                  : review.value.nearest
-                    ? `가장 가까운 복습: ${shortKoreanDate(review.value.nearest)}`
-                    : "오늘 복습할 카드가 없어요"}
-          </span>
-          <span className="mt-0.5 block text-sm text-slate-600">
-            {review.error
-              ? "복습 현황을 불러오지 못했어요. 복습 화면에서 다시 확인하세요."
-              : review.value && review.value.count > 0
-                ? "만기 카드와 새 카드, 복습 표시한 강의·노트를 바로 시작하세요"
-                : "복습 화면에서 다음 일정을 확인할 수 있어요"}
-          </span>
-        </span>
-        <ArrowRight aria-hidden className="size-4 shrink-0 text-slate-300" />
-      </Link>
-
-      <section className="relative overflow-hidden rounded-3xl bg-slate-900 px-6 py-10 text-white shadow-xl sm:px-12 sm:py-14">
-        <div aria-hidden className="pointer-events-none absolute -right-24 -top-24 size-96 rounded-full bg-rose-500/25 blur-3xl" />
-        <div aria-hidden className="pointer-events-none absolute -bottom-32 left-1/4 size-80 rounded-full bg-indigo-500/25 blur-3xl" />
-        <div aria-hidden className="pointer-events-none absolute right-6 top-4 hidden select-none font-serif text-[10rem] leading-none text-white/5 md:block" lang="ja">薬</div>
-        <div className="relative">
-          <p className="inline-flex rounded-full bg-white/10 px-3 py-1 text-xs text-slate-200 sm:text-sm" lang="ja">星薬科大学 薬学部 · 一般選抜 B方式 · 英語 / 化学</p>
-          <h1 className="mt-4 text-3xl font-bold leading-tight tracking-tight sm:text-5xl">
-            호시약대 합격까지,
-            <br />
-            <span className="text-amber-300">영어와 화학</span>을 한곳에서.
-          </h1>
-          <p className="mt-5 max-w-2xl leading-relaxed text-slate-300">
-            기출 3개년 해설, 문법·숙어 교재, 합격화학 해설, EJU 강의 교재를 모두 모았습니다. 모든 단원에는 호시 기출 기준으로 <b className="text-white">필수 · 권장 · 패스</b>를 붙였으니, 너무 어려운 건 건너뛰고 나오는 것부터 하세요.
-          </p>
-          <div className="mt-8 flex flex-wrap gap-3">
-            {nextLecture ? (
-              <Link to={`/eju/${nextLecture.idx}`} className="inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3 font-bold text-slate-900 transition hover:bg-amber-50 active:translate-y-px">
-                다음 강의: #{nextLecture.no} 이어서 <ArrowRight aria-hidden className="size-4" />
-              </Link>
-            ) : (
-              <Link to="/eju" className="inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3 font-bold text-slate-900">EJU 강의 교재 <ArrowRight className="size-4" /></Link>
-            )}
-            <Link to="/exam" className="inline-flex items-center gap-2 rounded-xl bg-white/10 px-5 py-3 font-semibold text-white ring-1 ring-white/25 transition hover:bg-white/15">
-              <Target className="size-4" />기출 분석 보기
-            </Link>
+    <div className="space-y-10">
+      <section aria-labelledby="today-title" className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+        <div className="flex items-center gap-3">
+          <CalendarCheck2 aria-hidden className="size-6 shrink-0 text-indigo-700" />
+          <h1 id="today-title" className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">오늘의 학습</h1>
+        </div>
+        <div className="mt-6 grid items-end gap-6 sm:grid-cols-[1fr_auto]">
+          <div aria-live="polite">
+            <h2 className="text-xl font-bold text-slate-900 tnum">
+              {review.error ? "복습 현황을 불러오지 못했어요" : !ready ? "오늘 복습 확인 중" : hasReview ? `오늘 복습 ${review.value!.count}장` : "오늘 복습을 마쳤어요"}
+            </h2>
+            <p className="mt-2 text-sm leading-relaxed text-slate-600">
+              {review.error ? "복습 화면에서 다시 확인하세요." : !ready ? "저장된 학습 기록을 확인하고 있어요." : hasReview ? `만기 카드 ${review.value!.due}장 · 새 카드 ${review.value!.fresh}장 · 강의·노트 ${review.value!.lectures}개` : review.value!.nearest ? `다음 복습은 ${shortKoreanDate(review.value!.nearest)}입니다.` : "예정된 카드가 없어요. 아래에서 공부할 교재를 고르세요."}
+            </p>
           </div>
+          <Link to={hasReview ? "/review/session" : "/review"} className={btn.primary + " min-h-11 self-start sm:self-end"}>
+            {hasReview ? "복습 시작" : "복습 일정 보기"}<ArrowRight aria-hidden className="size-4" />
+          </Link>
+        </div>
+        {nextLecture && <div className="mt-6 border-t border-slate-200 pt-5">
+          <Link to={`/eju/${nextLecture.idx}`} className="group flex min-h-11 items-center gap-3 rounded-xl text-sm text-slate-700 hover:text-indigo-700">
+            <PlayCircle aria-hidden className="size-5 shrink-0" />
+            <span className="min-w-0 flex-1">EJU 화학 강의 이어서 <span className="font-semibold">· {nextLecture.no}강</span></span>
+            <ArrowRight aria-hidden className="size-4 shrink-0" />
+          </Link>
+        </div>}
+      </section>
+
+      <section aria-labelledby="directory-title">
+        <h2 id="directory-title" className="mb-6 text-xl font-bold text-slate-900">과목별 학습</h2>
+        <div className="grid items-start gap-x-8 gap-y-8 md:grid-cols-2">
+          {studyGroups.map((section) => <section key={section.label} aria-label={section.label} className="min-w-0 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+            <h3 className="mb-3 font-semibold text-slate-900">{section.label}</h3>
+            <ul className="divide-y divide-slate-100">
+              {section.paths.map((item) => <li key={item.to}>
+                <Link to={item.to} className="group -mx-2 flex min-h-11 items-center gap-4 rounded-xl px-2 py-3 hover:bg-stone-50">
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-semibold text-slate-800 group-hover:text-indigo-700">{item.label}</span>
+                    <span className="mt-1 block text-sm leading-relaxed text-slate-600">{item.desc}</span>
+                  </span>
+                  <ArrowRight aria-hidden className="size-4 shrink-0 text-slate-500" />
+                </Link>
+              </li>)}
+            </ul>
+          </section>)}
         </div>
       </section>
 
-      <section>
-        <h2 className="mb-4 text-xl font-bold text-slate-900">과목별 교재</h2>
-        <div className="grid gap-3 sm:grid-cols-2">
-          {SUBJECTS.map((s) => (
-            <Link key={s.to} to={s.to} className="group flex gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md motion-reduce:hover:translate-y-0">
-              <span className={"inline-flex size-12 shrink-0 items-center justify-center rounded-xl " + s.color}><s.icon className="size-6" /></span>
-              <span className="min-w-0">
-                <span className="flex items-baseline gap-2">
-                  <b className="text-lg text-slate-900">{s.name}</b>
-                  <span className="text-xs text-slate-400" lang="ja">{s.ja}</span>
-                  <ArrowRight className="ml-auto size-4 text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-indigo-700" />
-                </span>
-                <span className="mt-1 block text-sm leading-relaxed text-slate-600">{s.desc}</span>
-              </span>
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      <section className="grid gap-4 lg:grid-cols-[1.3fr_1fr]">
-        <div className="rounded-2xl border border-slate-200 bg-white p-6">
-          <div className="flex items-center gap-2">
-            <ListChecks className="size-5 text-emerald-600" />
-            <h2 className="font-bold text-slate-900">내 학습 현황</h2>
-            <Link to="/check" className="ml-auto text-sm text-indigo-700 hover:underline">체크표</Link>
-          </div>
-          <dl className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
-            {[
-              ["본 강의", `${watched}/${eju?.length ?? 75}`],
-              ["화학 문항", `${chemDone}/350`],
-              ["영어 문제", `${enSolved}`],
-              ["문법 1000제", `${bookSolved}`],
-            ].map(([k, v]) => (
-              <div key={k}>
-                <dt className="text-xs text-slate-500">{k}</dt>
-                <dd className="mt-0.5 text-2xl font-bold tracking-tight text-slate-900 tnum">{v}</dd>
-              </div>
-            ))}
-          </dl>
-          <p className="mt-4 text-xs text-slate-500">기록은 이 브라우저에만 저장돼요. 폰과 노트북 기록은 따로 쌓입니다.</p>
-        </div>
-        <div className="rounded-2xl border border-slate-200 bg-white p-6">
-          <div className="flex items-center gap-2">
-            <ClipboardCheck className="size-5 text-rose-600" />
-            <h2 className="font-bold text-slate-900">호시 화학, 이렇게 나와요</h2>
-          </div>
-          <ul className="mt-3 space-y-2 text-sm">
-            {(tiers?.topics ?? []).slice(0, 5).map((t) => (
-              <li key={t.topic} className="flex items-baseline gap-2">
-                <span className="w-8 shrink-0 text-right font-bold text-rose-700 tnum">{t.count}회</span>
-                <span className="text-slate-800">{t.topic}</span>
-              </li>
-            ))}
-          </ul>
-          <Link to="/exam" className="mt-4 inline-flex items-center gap-1 text-sm text-indigo-700 hover:underline">3개년 출제 분석 전체 <ArrowRight className="size-3.5" /></Link>
-        </div>
-      </section>
-
-      <section className="rounded-2xl border border-slate-200 bg-white p-6">
-        <h2 className="font-bold text-slate-900">공식 기출 원본</h2>
-        <p className="mt-1 text-sm text-slate-600">대학이 공개한 최근 3개년 문제(영어 · 수학 · 화학)는 <a className="text-indigo-700 underline" href="https://www.hoshi.ac.jp/admission/nyushi/exam/" target="_blank" rel="noreferrer">星薬科大学 入学試験過去問題</a>에서 PDF로 볼 수 있어요. 영어 B방식 {papers.length}개년은 이 사이트에 전 문항 해설이 있습니다.</p>
+      <section className="border-t border-slate-200 pt-6">
+        <h2 className="text-xl font-bold text-slate-900">공식 기출 원본</h2>
+        <p className="mt-3 max-w-3xl text-sm leading-relaxed text-slate-600">영어·수학·화학 시험지는 <a className="text-indigo-700 underline underline-offset-4" href="https://www.hoshi.ac.jp/admission/nyushi/exam/" target="_blank" rel="noreferrer">星薬科大学 入学試験過去問題</a>에서 확인하세요. 영어 B방식 {papers.length}개년은 이 사이트에 전 문항 해설이 있습니다.</p>
       </section>
     </div>
   );

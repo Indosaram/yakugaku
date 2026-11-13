@@ -2,6 +2,35 @@ import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 
+export const studyGroups = [
+  { label: "영어", paths: [
+    { to: "/en", label: "영어 홈", desc: "기출문제 · 기초 문법 · 어휘 · 독해" },
+    { to: "/books", label: "영어 교재", desc: "영문법·어법 1000제와 영숙어" },
+  ] },
+  { label: "화학", paths: [
+    { to: "/chem", label: "화학 교재", desc: "유기·무기화학 문제와 해설" },
+    { to: "/chem370", label: "필수 화학용어 370선", desc: "일본어·요미가나·한국어 용어 목록" },
+    { to: "/textbook", label: "화학 교재 번역", desc: "문영당 화학·화학기초 한국어 번역" },
+    { to: "/eju", label: "EJU 화학 강의", desc: "강의 요약 · 노트 · 확인 문제" },
+    { to: "/jitan", label: "화학 암기 카드", desc: "무기 · 유기 · 고분자 · 반응식" },
+    { to: "/yoten", label: "요점·용어", desc: "요점 문제집과 이과용어" },
+    { to: "/kyotsu", label: "공통테스트 화학", desc: "2025 시험지와 문항별 해설" },
+    { to: "/handai2015", label: "오사카대학 2015", desc: "전기 화학 4문항 한국어 해설" },
+  ] },
+  { label: "수학", paths: [
+    { to: "/math", label: "1분 수학", desc: "문제별 신호와 풀이 순서" },
+    { to: "/vec", label: "수학 C 벡터", desc: "내적부터 공간벡터까지" },
+    { to: "/nankan", label: "난관대 전 패턴", desc: "수학 패턴 · 무기화학도 포함" },
+    { to: "/trig", label: "삼각함수", desc: "공식 확인과 카드 퀴즈" },
+  ] },
+  { label: "학습 관리", paths: [
+    { to: "/review", label: "복습", desc: "오늘의 카드와 복습 일정" },
+    { to: "/check", label: "체크표", desc: "과목별 학습 진도" },
+    { to: "/exam", label: "기출 분석", desc: "출제 경향과 학습 우선순위" },
+    { to: "/sync", label: "기록 동기화", desc: "기기 간 학습 기록 연결" },
+  ] },
+];
+
 export function PageTitle({ kicker, title, children }: { kicker?: string; title: string; children?: ReactNode }) {
   return (
     <div className="mb-8">

@@ -15,7 +15,7 @@ export const lesson: Lesson = {
 [However / But / Yet] 뒤 => 필자의 진짜 주장 (밑줄·빈칸 정답 위치!)
 [For example / For instance] 뒤 => 앞 문장의 구체적 예 (앞 문장이 핵심)
 [Therefore / Thus / As a result] 뒤 => 결론·결과
-[내용일치] => 본문 근거 문장 ↔ 선택지 1:1 대조 (상식으로 고르기 금지!)
+[내용일치] => 본문 근거 문장 ⇄ 선택지 1:1 대조 (상식으로 고르기 금지!)
 :::
 
 ## 신호등 연결어 표

@@ -9,7 +9,12 @@
   h1, h2, h3 { text-wrap: balance; }
   :focus-visible { outline: 2px solid var(--color-indigo-500); outline-offset: 2px; border-radius: 0.5rem; }
 }
-html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; scrollbar-color: var(--color-slate-400) var(--color-stone-100); }
+::selection { color: var(--color-slate-900); background: var(--color-indigo-100); }
+input, textarea, [contenteditable] { caret-color: var(--color-indigo-700); }
+.mobile-navigation { max-height: calc(100dvh - 4rem); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+header nav a, header nav button { min-height: 2.75rem; }
+header [data-sync-badge] { width: 2.75rem; height: 2.75rem; }
 body { @apply bg-stone-50 text-slate-800 antialiased; word-break: keep-all; overflow-wrap: anywhere; }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
@@ -57,6 +62,8 @@ body { @apply bg-stone-50 text-slate-800 antialiased; word-break: keep-all; over
 .md table { @apply w-full my-4 text-sm border-collapse block overflow-x-auto; }
 .md th { @apply bg-stone-100 font-semibold text-left px-3 py-2 border border-slate-200 whitespace-nowrap; }
 .md td { @apply px-3 py-2 border border-slate-200 align-top min-w-[5.5em]; }
+/* Periodic tables and long formula cells must never push the page sideways on a 390px phone. */
+.md td, .md th { overflow-wrap: anywhere; }
 .md a { @apply text-indigo-700 underline underline-offset-2 hover:text-indigo-900; }
 .md hr { @apply my-6 border-slate-200; }
 .en { font-family: var(--font-serif); }

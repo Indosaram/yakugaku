@@ -36,7 +36,7 @@ The hospital(주어:병원은) | ran out of(구동사:다 떨어졌다) | masks(
 Don't put off(구동사 부정:미루지 마세요) | seeing a doctor(동명사 목적어:진찰받는 것을) => 진찰받는 것을 미루지 마세요.
 :::
 
-:::transform 구동사 ↔ 한 단어 동사 바꿔 쓰기 (II번 유형 대비)
+:::transform 구동사 ⇄ 한 단어 동사 바꿔 쓰기 (II번 유형 대비)
 The meeting was [put off] until Friday. || The meeting was [postponed] until Friday. || II번 '의미가 가까운 것' 문제는 이렇게 한 단어로 바꾸는 형태로 나옵니다.
 Police are [looking into] the case. || Police are [investigating] the case. || look into = investigate
 :::

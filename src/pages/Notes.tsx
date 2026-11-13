@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { marked } from "marked";
 import { Flag, PlayCircle } from "lucide-react";
 import "../chem.css";
+import { MdInline, renderMd } from "../components/Md";
 import { loadData, useData, type EjuLecture } from "../data/remote";
 import { clearProgress, itemsFor, peekProgress, setProgress, useProgress } from "../progress";
 import { cardId, markKey, readSrs } from "../srs-card";
@@ -127,7 +127,7 @@ export function NotesSection() {
               <span>
                 <span className="t">{n.title} <span className="font-medium text-slate-500" lang="ja">{n.ja}</span></span>
                 <br />
-                <span className="s">{n.lead}</span>
+                <span className="s"><MdInline text={n.lead} /></span>
               </span>
               <span className="p inline-flex items-center gap-1.5"><PlayCircle aria-hidden className="size-4" />{fmt(n.dur)}</span>
             </Link>
@@ -145,7 +145,7 @@ export function NotePage() {
   const { get } = useProgress();
   const [at, setAt] = useState<number | null>(null);
   useEffect(() => setAt(null), [id]);
-  const html = useMemo(() => (body ? (marked.parse(body, { async: false, gfm: true }) as string) : ""), [body]);
+  const html = useMemo(() => (body ? renderMd(body) : ""), [body]);
   useEffect(() => {
     const el = document.getElementById("note-body");
     const h = (e: MouseEvent) => {

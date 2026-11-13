@@ -150,6 +150,7 @@ export function ChemHome() {
         })}
       </div>
       <h2 className="mt-10 mb-3 text-xl font-bold text-slate-900">암기 카드</h2>
+      <p className="mb-3 text-sm text-slate-600">「필수 화학용어 370선」은 일본어 표기·요미가나·한국어를 한눈에 보는 <Link to="/chem370" className="text-indigo-700 underline underline-offset-4">용어 목록</Link>으로도 볼 수 있어요.</p>
       <DeckList />
     </div>
   );

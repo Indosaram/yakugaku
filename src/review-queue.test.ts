@@ -23,19 +23,19 @@ function scheduled(id: string, due: string): Record<string, unknown> {
   return { [srsKey(id)]: JSON.stringify(init(due)), [markKey(id)]: "x" };
 }
 
-test("enumerates all 959 real cards and ignores yogo and trig sources", () => {
+test("enumerates all 1329 real cards and ignores yogo and trig sources", () => {
   expect(SRS_SOURCES).toEqual(["jitan/decks.json", "yoten/decks.json", "chem/decks.json"]);
-  expect(SRS_SOURCES.map((src) => Object.values(decks[src]).reduce((sum, deck) => sum + deck.cards.length, 0))).toEqual([461, 415, 83]);
-  expect(allCards).toHaveLength(959);
+  expect(SRS_SOURCES.map((src) => Object.values(decks[src]).reduce((sum, deck) => sum + deck.cards.length, 0))).toEqual([461, 415, 453]);
+  expect(allCards).toHaveLength(1329);
   const extra = { excluded: { title: "Excluded", cards: [{ q: "Out of scope", a: "Not queued" }] } };
   const result = buildQueue({
     today: TODAY,
     decks: { ...decks, "yoten/yogo.json": extra, "trig/decks.json": extra },
     read: reader(allDue),
-    softCap: 959,
+    softCap: 1329,
   });
-  expect(result.counts.total).toBe(959);
-  expect(result.due).toHaveLength(959);
+  expect(result.counts.total).toBe(1329);
+  expect(result.due).toHaveLength(1329);
   expect(new Set(result.due.map((card) => card.id))).toEqual(new Set(allCards.map((card) => card.id)));
   expect(result.due.some((card) => card.set === "trig" || card.deck === "excluded")).toBe(false);
 });
@@ -49,12 +49,12 @@ test("reads cards in source, deck insertion, and card array order", () => {
   ]);
 });
 
-test("all-due cards are capped at 120 with an 839-card backlog", () => {
+test("all-due cards are capped at 120 with a 1209-card backlog", () => {
   const result = buildQueue({ today: TODAY, decks, read: reader(allDue) });
   expect(result.due).toHaveLength(120);
   expect(result.fresh).toEqual([]);
   expect(result.due.every((card) => !card.fresh && card.due === TODAY && card.overdue === 0)).toBe(true);
-  expect(result.counts).toEqual({ due: 120, fresh: 0, lectures: 0, capped: true, remaining: 839, total: 959, newLeft: 15 });
+  expect(result.counts).toEqual({ due: 120, fresh: 0, lectures: 0, capped: true, remaining: 1209, total: 1329, newLeft: 15 });
 });
 
 test("empty storage supplies fifteen fresh cards without negative backlog", () => {
@@ -269,7 +269,7 @@ test("lectures survive a full or zero soft cap and are absent when not supplied"
       fresh: false, due: TODAY, overdue: 0,
     }]);
     expect(result.due).toHaveLength(softCap);
-    expect(result.counts.total).toBe(959);
+    expect(result.counts.total).toBe(1329);
   }
   const without = buildQueue({ today: TODAY, decks, read: reader(allDue) });
   expect(without.counts.lectures).toBe(0);
@@ -279,7 +279,7 @@ test("lectures survive a full or zero soft cap and are absent when not supplied"
 
 test("backlog rows exactly count uncapped cards and sum to remaining", () => {
   const result = buildQueue({ today: TODAY, decks, read: reader(allDue) });
-  const full = buildQueue({ today: TODAY, decks, read: reader(allDue), softCap: 959 });
+  const full = buildQueue({ today: TODAY, decks, read: reader(allDue), softCap: 1329 });
   const expected = new Map<string, number>();
   for (const card of full.due.slice(120)) {
     const key = `${card.set}:${card.deck}`;
@@ -287,7 +287,7 @@ test("backlog rows exactly count uncapped cards and sum to remaining", () => {
   }
   expect(result.backlogByDeck).toHaveLength(expected.size);
   expect(result.backlogByDeck.reduce((sum, row) => sum + row.count, 0)).toBe(result.counts.remaining);
-  expect(result.counts.remaining).toBe(839);
+  expect(result.counts.remaining).toBe(1209);
   expect(result.backlogByDeck.map((row) => row.key)).toEqual([...expected.keys()]);
   for (const row of result.backlogByDeck) {
     expect(row.count).toBeGreaterThan(0);
@@ -369,10 +369,10 @@ test("fresh quota is reserved first so backlog cannot starve fifteen new cards",
   const result = buildQueue({ today: TODAY, decks, read: reader(values) });
   expect(result.fresh).toHaveLength(15);
   expect(result.due).toHaveLength(105);
-  expect(result.counts.total).toBe(954);
-  expect(result.counts.remaining).toBe(834);
+  expect(result.counts.total).toBe(1324);
+  expect(result.counts.remaining).toBe(1204);
   expect(result.counts.capped).toBe(true);
-  expect(result.backlogByDeck.reduce((sum, row) => sum + row.count, 0)).toBe(834);
+  expect(result.backlogByDeck.reduce((sum, row) => sum + row.count, 0)).toBe(1204);
 });
 
 test("a soft cap below the fresh quota never truncates fresh cards", () => {
@@ -381,8 +381,8 @@ test("a soft cap below the fresh quota never truncates fresh cards", () => {
   const result = buildQueue({ today: TODAY, decks, read: reader(values), softCap: 10 });
   expect(result.fresh).toHaveLength(15);
   expect(result.due).toEqual([]);
-  expect(result.counts.remaining).toBe(939);
-  expect(result.counts.total).toBe(954);
+  expect(result.counts.remaining).toBe(1309);
+  expect(result.counts.total).toBe(1324);
 });
 
 test("building the queue uses only injected storage reads and never touches browser storage", () => {

@@ -112,7 +112,7 @@ test("a thirty-day-old o remains twenty-three days overdue instead of being clam
   expect(state!.due < today).toBe(true);
 });
 
-test("all 959 real cards seed all three marks with valid due days", async () => {
+test("all 1329 real cards seed all three marks with valid due days", async () => {
   let total = 0;
   for (const name of ["jitan", "yoten", "chem"]) {
     const decks = (await Bun.file(`public/data/${name}/decks.json`).json()) as Record<string, { cards: { q: string }[] }>;
@@ -131,7 +131,7 @@ test("all 959 real cards seed all three marks with valid due days", async () => 
       }
     }
   }
-  expect(total).toBe(959);
+  expect(total).toBe(1329);
 });
 
 test("o with NaN, infinite, or negative timestamps falls back to today", () => {

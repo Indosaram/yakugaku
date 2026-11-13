@@ -287,7 +287,7 @@ export function IdiomsPage() {
                     <p className="text-xl font-bold text-indigo-800">{it.ko}</p>
                     <p className="en mt-3 text-slate-800">{it.ex}</p>
                     <p className="text-sm text-slate-500">{it.exKo}</p>
-                    {it.note && <p className="mt-2 text-xs text-slate-500">▶ {it.note}</p>}
+                    {it.note && <p className="mt-2 text-xs text-slate-500">▸ {it.note}</p>}
                   </div>
                 ) : <p className="mt-8 text-sm text-slate-500">탭해서 뜻 보기</p>}
               </div>
@@ -313,7 +313,7 @@ export function IdiomsPage() {
                       <p tabIndex={hide ? 0 : undefined} className={"mt-0.5 font-semibold text-indigo-800 transition " + (hide ? "blur-sm hover:blur-none focus:blur-none" : "")}>{it.ko}</p>
                       <p className="en mt-2 text-[15px] text-slate-800">{it.ex}</p>
                       <p className={"text-sm text-slate-500 transition " + (hide ? "blur-sm hover:blur-none" : "")}>{it.exKo}</p>
-                      {it.note && <p className="mt-2 rounded-lg bg-stone-50 px-2.5 py-1.5 text-xs text-slate-600">▶ {it.note}</p>}
+                      {it.note && <p className="mt-2 rounded-lg bg-stone-50 px-2.5 py-1.5 text-xs text-slate-600">▸ {it.note}</p>}
                     </li>
                   );
                 })}

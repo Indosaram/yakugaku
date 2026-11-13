@@ -4,6 +4,7 @@ import { PlayCircle, Star } from "lucide-react";
 import "../chem.css";
 import { useData, type JuyoIndex } from "../data/remote";
 import { setProgress, useProgress } from "../progress";
+import { MdInline } from "../components/Md";
 import { MarkButtons, MarkGlyph, countMarks, readMark, writeMark, type Mark } from "../marks";
 
 // 「화학 중요문제집」(化学 重要問題集 2026) 영상 해설.
@@ -110,8 +111,8 @@ export function JuyoGroup() {
               <Link key={p.n} className={"cell" + (m ? MARK_CLS[m] : "") + (star ? " star" : "")} to={`/chem/j/${g.id}/${p.n}`} data-mark-state={m ?? ""}
                 onPointerOver={(e) => e.currentTarget.classList.add("peek")} onPointerOut={(e) => e.currentTarget.classList.remove("peek")}>
                 <span className="z">{p.n}<span className="inline-flex items-center gap-1">{star && <Star className="size-3.5 fill-amber-300 text-amber-600" />}<MarkGlyph m={m} className="text-base" /></span></span>
-                <span className="ans long">{p.a || "영상 확인"}</span>
-                <span className="g"><b>{p.s}</b> {p.g}</span>
+                <span className="ans long">{p.a ? <MdInline text={p.a} /> : "영상 확인"}</span>
+                <span className="g"><b>{p.s}</b> <MdInline text={p.g} /></span>
               </Link>
             );
           })}
@@ -176,7 +177,7 @@ export function JuyoProblem() {
           <div className="prob-head">
             <div className={"big-cell long" + (covered && !shown ? " covered" : "")}>
               <span className="z">중요 {p.n}</span>
-              <span className="ans" role={covered ? "button" : undefined} tabIndex={covered ? 0 : undefined} onClick={() => setShown(true)}>{p.a || "영상 확인"}</span>
+              <span className="ans" role={covered ? "button" : undefined} tabIndex={covered ? 0 : undefined} onClick={() => setShown(true)}>{p.a ? <MdInline text={p.a} /> : "영상 확인"}</span>
               <span className="cap">정답 요약</span>
             </div>
             <div className="meta"><h1>{p.n}번 문제</h1><span className="chap">{p.s}</span></div>

@@ -57,7 +57,7 @@ test("without mark times every o card looks due today", () => {
   expect(deckDue("chem/decks.json", deckId, chem, read, {}, "2026-11-09")).toBe(1);
 });
 
-test("deckDue returns 0 for sources outside the 959-card SRS scope", () => {
+test("deckDue returns 0 for sources outside the 1329-card SRS scope", () => {
   expect(deckDue("yoten/yogo.json", "any", chem, () => undefined, {}, "2026-11-09")).toBe(0);
   expect(deckDue("trig/decks.json", "any", chem, () => undefined, {}, "2026-11-09")).toBe(0);
   expect(deckDue("chem/decks.json", undefined, chem, () => undefined, {}, "2026-11-09")).toBe(0);

@@ -167,7 +167,7 @@ test("the first o grade advances from a lazy t seed without consuming a new-card
   expect(num(newKey(today))).toBe(before);
 });
 
-test("all 959 card keys across the three decks fit in 400 chars", async () => {
+test("all 1329 card keys across the three decks fit in 400 chars", async () => {
   let total = 0;
   const tooLong: string[] = [];
   for (const name of ["jitan", "yoten", "chem"]) {
@@ -181,6 +181,6 @@ test("all 959 card keys across the three decks fit in 400 chars", async () => {
       }
     }
   }
-  expect(total).toBe(959);
+  expect(total).toBe(1329);
   expect(tooLong).toEqual([]);
 });

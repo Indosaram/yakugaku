@@ -33,7 +33,7 @@ This tablet(주어:이 정제는) | should be stored(조동사 수동태:보관�
 The patient(주어:환자는) | was advised(수동태:권고를 받았다) | to drink more water(보어:물을 더 마시라고) => 환자는 물을 더 마시라는 권고를 받았다.
 :::
 
-:::transform 능동태 ↔ 수동태 변신과 수동태 불가 동사
+:::transform 능동태 ⇄ 수동태 변신과 수동태 불가 동사
 능동: Doctors [prescribe] this drug. (뒤에 목적어 있음!) || 수동: This drug [is prescribed] by doctors. (뒤에 목적어 없음!) || 타동사 뒤에 목적어가 없으면 수동태(be + p.p.) 자리입니다!
 자동사(수동태 절대 불가!): The side effect [appeared / occurred / happened]. || [was appeared / was occurred] (절대 불가 X) || appear, disappear, happen, occur, consist of, belong to는 원래 목적어가 없는 1형식 자동사라 수동태로 쓸 수 없습니다!
 :::

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { Calculator, FileText, FlaskConical, Layers, Sigma } from "lucide-react";
+import { Calculator, FileText, FlaskConical, Layers, Sigma, Zap } from "lucide-react";
 import { useData, type Deck, type Tier } from "../data/remote";
 import { useProgress } from "../progress";
 import { Md } from "../components/Md";
@@ -325,7 +325,7 @@ export function VecHome() {
   return (
     <div>
       <PageTitle kicker="수학 C" title="벡터 전 문제 해설 (내적 ~ 공간벡터)">
-        교재 『数学III+C』 1장 벡터 18~62쪽의 예제·유제·정기테스트 문제를 모두 한국어로 풀었어요. 문제마다 <b>정석 풀이</b>와 시험장에서 더 빨리 끝내는 <b>⚡ 빠른 풀이</b>를 붙였어요. 빠른 풀이는 눌러서 펼쳐 보세요.
+        교재 『数学III+C』 1장 벡터 18~62쪽의 예제·유제·정기테스트 문제를 모두 한국어로 풀었어요. 문제마다 <b>정석 풀이</b>와 시험장에서 더 빨리 끝내는 <b><Zap aria-hidden className="mr-0.5 inline size-4 align-[-2px] fill-emerald-500 text-emerald-600" />빠른 풀이</b>를 붙였어요. 빠른 풀이는 눌러서 펼쳐 보세요.
       </PageTitle>
       <ol className="divide-y divide-slate-200 overflow-hidden rounded-2xl border border-slate-200 bg-white">
         {data.map((m) => (

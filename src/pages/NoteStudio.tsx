@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { marked } from "marked";
 import { ArrowLeft, Loader2, Sparkles, Trash2 } from "lucide-react";
 import "../chem.css";
 import { btn, PageTitle } from "../components/ui";
+import { renderMd } from "../components/Md";
 import { clearProgress, setProgress, useProgress } from "../progress";
 import { todayISO } from "../srs";
 import { aiNote } from "../sync";
@@ -104,7 +104,7 @@ export function NoteStudio() {
       {draft && (
         <section className="mt-8" data-note-draft>
           <h2 className="text-lg font-bold text-slate-900">만들어진 노트</h2>
-          <div className="md prose mt-3 rounded-xl border border-slate-200 bg-white px-5 py-4" dangerouslySetInnerHTML={{ __html: marked.parse(draft, { async: false, gfm: true }) as string }} />
+          <div className="md prose mt-3 rounded-xl border border-slate-200 bg-white px-5 py-4" dangerouslySetInnerHTML={{ __html: renderMd(draft) }} />
           <div className="mt-4 flex flex-wrap items-center gap-2">
             <button type="button" className={btn.primary} onClick={save} data-note-save>저장</button>
             <button type="button" className={btn.secondary} onClick={() => setDraft(null)} data-note-discard>버리기</button>
@@ -166,7 +166,7 @@ export function AiNotePage() {
   }
 
   const review = Boolean(get(`note:review:${id}`));
-  const html = marked.parse(draftBody, { async: false, gfm: true }) as string;
+  const html = renderMd(draftBody);
   return (
     <div className="chem mx-auto max-w-3xl">
       <nav aria-label="위치" className="mb-3 flex flex-wrap items-center gap-1.5 text-sm text-slate-500">

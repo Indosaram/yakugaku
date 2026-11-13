@@ -722,7 +722,7 @@ const LABS: Record<string, LabSpec> = {
   },
   "g09-passive": {
     badge: "모션 실험실 · 제9강",
-    title: "능동태 ↔ 수동태 자리 바꾸기 모션",
+    title: "능동태 ⇄ 수동태 자리 바꾸기 모션",
     subtitle: "목적어가 주어 자리로 나가면서 동사가 [be동사 + p.p.]로 변신하는 과정을 확인하세요.",
     render: () => <PassiveSwapLab />,
   },

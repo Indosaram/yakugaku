@@ -1,0 +1,56 @@
+/* Math notation produced by mathify() in components/Md.tsx and inline HTML in data md. */
+/* Combining marks (U+20D7) are drawn here instead of relying on font shaping, so the over-arrow
+   spans the whole symbol: a rule across the full .vec width plus a chevron anchored to its right
+   end, which keeps single letters (a⃗) and multi-letter vectors (AB⃗, OP⃗) equally crisp. */
+.vec {
+  position: relative;
+  display: inline-block;
+  padding-top: 0.4em;
+  line-height: 1;
+}
+.vec::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0.06em;
+  top: 0.19em;
+  border-top: 0.055em solid currentColor;
+}
+.vec::after {
+  content: "";
+  position: absolute;
+  right: -0.02em;
+  top: 0.1275em;
+  width: 0.15em;
+  height: 0.15em;
+  border-top: 0.055em solid currentColor;
+  border-right: 0.055em solid currentColor;
+  transform: rotate(45deg);
+}
+/* Combining overline (U+0304), e.g. Q̄. Named .mbar, not .bar, so it cannot touch the .chem .bar
+   progress bars (chem.css) whose markup also uses class="bar". */
+.mbar {
+  display: inline-block;
+  border-top: 0.075em solid currentColor;
+  padding-top: 0.05em;
+  line-height: 1;
+}
+.frac {
+  display: inline-flex;
+  flex-direction: column;
+  vertical-align: middle;
+  text-align: center;
+  margin: 0 0.2em;
+}
+.frac > span:first-child {
+  border-bottom: 1px solid currentColor;
+  padding: 0 0.3em 0.1em;
+}
+.frac > span:last-child {
+  padding: 0.1em 0.3em 0;
+}
+.formula-line {
+  text-align: center;
+  overflow-x: auto;
+  margin: 1rem 0;
+}

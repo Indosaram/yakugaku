@@ -94,7 +94,7 @@ export function YotenHome() {
   return (
     <div>
       <PageTitle kicker="10/23 요청분" title="요점 암기 문제집 · 이과용어 카드">
-        『無機・有機・高分子化学 要点まとめ問題』의 답지(빨간 손글씨)를 옮겨 적어 답지와 카드로 만들고, 『이과용어의 기초』 표를 한↔일 카드로 만들었어요. 손글씨 답이 틀린 곳은 바로잡고 카드에 "※손글씨 답과 다르게 바로잡음"이라고 적어 두었어요.
+        『無機・有機・高分子化学 要点まとめ問題』의 답지(빨간 손글씨)를 옮겨 적어 답지와 카드로 만들고, 『이과용어의 기초』 표를 한⇄일 카드로 만들었어요. 손글씨 답이 틀린 곳은 바로잡고 카드에 "※손글씨 답과 다르게 바로잡음"이라고 적어 두었어요.
       </PageTitle>
       <h2 className="mb-3 text-xl font-bold text-slate-900">要点まとめ問題 카드 <span className="text-sm font-medium text-slate-500">{Object.values(yo).reduce((s, d) => s + d.cards.length, 0)}장</span></h2>
       <DeckLinks decks={yo} base="/yoten/d" src="yoten/decks.json" />

@@ -1,9 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, Route, Routes, useLocation } from "react-router-dom";
-import { BookOpenText, Calculator, CalendarCheck2, ClipboardCheck, Cloud, CloudOff, FileText, FlaskConical, Home as HomeIcon, Languages, Layers, ListChecks, Menu, MoveUpRight, PlayCircle, Sigma, Triangle, X } from "lucide-react";
+import { Check, ChevronDown, Cloud, CloudOff, Menu, X } from "lucide-react";
+import { studyGroups } from "./components/ui";
 import SyncPage from "./pages/SyncPage";
 import { useSync } from "./sync";
 import Home from "./pages/Home";
+import { TextbookHome, TextbookPage } from "./pages/Textbook";
 import EnglishHome from "./pages/EnglishHome";
 import Guide from "./pages/Guide";
 import GrammarList from "./pages/GrammarList";
@@ -16,6 +18,8 @@ import ReadingPage from "./pages/ReadingPage";
 import Resources from "./pages/Resources";
 import Plan from "./pages/Plan";
 import { ChemChapter, ChemDeck, ChemHome, ChemInorganic, ChemProblem } from "./pages/Chem";
+import Chem370 from "./pages/Chem370";
+import { Handai2015Home, Handai2015Page } from "./pages/Handai2015";
 import { JuyoGroup, JuyoProblem } from "./pages/Juyo";
 import { NotePage } from "./pages/Notes";
 import { NoteStudio } from "./pages/NoteStudio";
@@ -28,23 +32,7 @@ import { BooksHome, GrammarUnit, IdiomsPage } from "./pages/Books";
 import { YogoDeckPage, YotenDeckPage, YotenHome } from "./pages/Yoten";
 import { JitanDeckPage, JitanHome, KyotsuHome, KyotsuQuestion, MathHome, MathPage, NankanHome, NankanPage, TrigDeckPage, TrigHome, VecHome, VecPage } from "./pages/Extra";
 
-const NAV = [
-  { to: "/", label: "홈", end: true, icon: HomeIcon },
-  { to: "/en", label: "영어", icon: Languages },
-  { to: "/books", label: "영어 교재", icon: BookOpenText },
-  { to: "/chem", label: "화학", icon: FlaskConical },
-  { to: "/eju", label: "EJU 강의", icon: PlayCircle },
-  { to: "/jitan", label: "암기 카드", icon: Layers },
-  { to: "/yoten", label: "요점·용어", icon: Layers },
-  { to: "/kyotsu", label: "공통테스트", icon: FileText },
-  { to: "/math", label: "수학", icon: Calculator },
-  { to: "/vec", label: "수학C 벡터", icon: MoveUpRight },
-  { to: "/nankan", label: "난관대 패턴", icon: Sigma },
-  { to: "/trig", label: "삼각함수", icon: Triangle },
-  { to: "/exam", label: "기출 분석", icon: ClipboardCheck },
-  { to: "/check", label: "체크표", icon: ListChecks },
-  { to: "/review", label: "복습", icon: CalendarCheck2 },
-];
+const matchesPath = (path: string, to: string) => path === to || path.startsWith(to + "/");
 
 // 영어 과목 안의 보조 메뉴
 const EN_NAV = [
@@ -74,7 +62,7 @@ function SyncBadge() {
   const s = useSync();
   const on = !!s.code;
   return (
-    <Link to="/sync" data-sync-badge={s.status} title={on ? "기록 동기화 중" : "기록 동기화 설정"} className={"inline-flex size-10 shrink-0 items-center justify-center rounded-xl border transition hover:bg-stone-100 " + (on ? (s.status === "offline" || s.status === "error" ? "border-amber-300 text-amber-700" : "border-emerald-200 text-emerald-700") : "border-slate-200 text-slate-500")}>
+    <Link to="/sync" data-sync-badge={s.status} title={on ? "기록 동기화 중" : "기록 동기화 설정"} className={"inline-flex size-10 shrink-0 items-center justify-center rounded-xl border transition hover:bg-stone-100 " + (on ? (s.status === "offline" || s.status === "error" ? "border-slate-200 bg-amber-50 text-amber-700" : "border-slate-200 bg-emerald-50 text-emerald-700") : "border-slate-200 text-slate-500")}>
       {on ? <Cloud aria-hidden className="size-5" /> : <CloudOff aria-hidden className="size-5" />}
       <span className="sr-only">{on ? "기록 동기화" : "기록 동기화 설정"}</span>
     </Link>
@@ -83,9 +71,28 @@ function SyncBadge() {
 
 export default function App() {
   const [open, setOpen] = useState(false);
+  const [group, setGroup] = useState<string | null>(null);
+  const header = useRef<HTMLElement>(null);
+  const mobileTrigger = useRef<HTMLButtonElement>(null);
   const loc = useLocation();
   useEffect(() => {
+    const dismiss = (event: PointerEvent) => {
+      if (!header.current?.contains(event.target as Node)) { setGroup(null); setOpen(false); }
+    };
+    const escape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      if (group) header.current?.querySelector<HTMLButtonElement>(`[data-group="${group}"]`)?.focus();
+      else if (open) mobileTrigger.current?.focus();
+      setGroup(null);
+      setOpen(false);
+    };
+    document.addEventListener("pointerdown", dismiss);
+    document.addEventListener("keydown", escape);
+    return () => { document.removeEventListener("pointerdown", dismiss); document.removeEventListener("keydown", escape); };
+  }, [group, open]);
+  useEffect(() => {
     setOpen(false);
+    setGroup(null);
     window.scrollTo(0, 0);
   }, [loc.pathname]);
   const inEnglish = loc.pathname === "/en" || loc.pathname.startsWith("/en/");
@@ -95,45 +102,55 @@ export default function App() {
       <a href="#main" onClick={(e) => { e.preventDefault(); document.getElementById("main")?.focus(); }} className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-lg focus:bg-white focus:px-3 focus:py-2 focus:shadow">
         본문으로 건너뛰기
       </a>
-      <header className="sticky top-0 z-30 bg-white/85 backdrop-blur border-b border-slate-200">
-        <div className="mx-auto max-w-6xl px-4 h-16 flex items-center gap-4">
-          <NavLink to="/" className="flex items-center gap-2.5 shrink-0">
+      <header ref={header} className="sticky top-0 z-30 bg-white border-b border-slate-200" onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) { setGroup(null); setOpen(false); } }}>
+        <div className="mx-auto max-w-6xl px-4 h-16 flex items-center gap-2 sm:gap-4">
+          <NavLink to="/" className="flex min-w-0 items-center gap-2.5">
             <Logo />
-            <span className="leading-tight">
+            <span className="min-w-0 leading-tight">
               <span className="block font-bold text-slate-900 tracking-tight">yakugaku</span>
-              <span className="block text-xs text-slate-500">호시약대 영어·화학 공부방</span>
+              <span className="block truncate text-xs text-slate-500">영어 · 화학 · 수학 공부방</span>
             </span>
           </NavLink>
-          <nav aria-label="주 메뉴" className="hidden xl:flex gap-0.5 ml-auto">
-            {NAV.map((n) => (
-              <NavLink key={n.to} to={n.to} end={n.end} className={({ isActive }) => navCls(isActive)}>
-                {n.label}
-              </NavLink>
-            ))}
+          <nav aria-label="주 메뉴" className="hidden lg:flex items-center gap-1 ml-auto">
+            <NavLink to="/" end className={({ isActive }) => navCls(isActive)}>홈</NavLink>
+            {studyGroups.map((section) => {
+              const active = section.paths.some((item) => matchesPath(loc.pathname, item.to));
+              const expanded = group === section.label;
+              return <div key={section.label} className="relative">
+                <button data-group={section.label} aria-expanded={expanded} aria-controls={`nav-${section.paths[0].to.slice(1)}`} onClick={() => setGroup(expanded ? null : section.label)} className={navCls(active) + " inline-flex min-h-11 items-center gap-2"}>
+                  {section.label}<ChevronDown aria-hidden className={"size-4 transition-transform " + (expanded ? "rotate-180" : "")} />
+                </button>
+                {expanded && <div id={`nav-${section.paths[0].to.slice(1)}`} className="reveal absolute right-0 top-full mt-2 w-64 rounded-2xl border border-slate-200 bg-white p-2 shadow-md">
+                  {section.paths.map((item) => <NavLink key={item.to} to={item.to} onClick={() => setGroup(null)} className={({ isActive }) => "flex min-h-11 items-center justify-between gap-3 rounded-xl px-3 py-3 text-sm " + (isActive ? "bg-indigo-50 font-semibold text-indigo-800" : "text-slate-700 hover:bg-stone-100")}>
+                    {item.label}{matchesPath(loc.pathname, item.to) && <Check aria-hidden className="size-4 shrink-0" />}
+                  </NavLink>)}
+                </div>}
+              </div>;
+            })}
           </nav>
-          <span className="ml-auto xl:ml-0"><SyncBadge /></span>
+          <span className="ml-auto lg:ml-0"><SyncBadge /></span>
           <button
+            ref={mobileTrigger}
             aria-label={open ? "메뉴 닫기" : "메뉴 열기"}
             aria-expanded={open}
-            className="xl:hidden inline-flex size-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 transition hover:bg-stone-100"
+            aria-controls="mobile-navigation"
+            className="lg:hidden inline-flex size-11 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-stone-100"
             onClick={() => setOpen((o) => !o)}
           >
             {open ? <X aria-hidden className="size-5" /> : <Menu aria-hidden className="size-5" />}
           </button>
         </div>
         {open && (
-          <nav aria-label="주 메뉴" className="reveal xl:hidden border-t border-slate-200 bg-white px-4 py-3 grid grid-cols-2 gap-1">
-            {NAV.map((n) => (
-              <NavLink
-                key={n.to}
-                to={n.to}
-                end={n.end}
-                className={({ isActive }) => "flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm transition " + (isActive ? "bg-indigo-50 text-indigo-800 font-semibold" : "text-slate-700 hover:bg-stone-100")}
-              >
-                <n.icon aria-hidden className="size-4 opacity-70" />
-                {n.label}
-              </NavLink>
-            ))}
+          <nav id="mobile-navigation" aria-label="주 메뉴" className="mobile-navigation reveal lg:hidden border-t border-slate-200 bg-white px-4 py-4">
+            <NavLink to="/" end onClick={() => setOpen(false)} className={({ isActive }) => navCls(isActive) + " flex min-h-11 items-center"}>홈</NavLink>
+            <div className="mt-4 grid grid-cols-1 gap-6 sm:grid-cols-2">
+              {studyGroups.map((section) => <section key={section.label}>
+                <h2 className="mb-2 px-3 text-sm font-bold text-slate-900">{section.label}</h2>
+                <div className="grid grid-cols-2 gap-1 sm:grid-cols-1">{section.paths.map((item) => <NavLink key={item.to} to={item.to} onClick={() => setOpen(false)} className={({ isActive }) => "flex min-h-11 items-center justify-between gap-1 rounded-xl px-3 py-2 text-sm " + (isActive ? "bg-indigo-50 text-indigo-800 font-semibold" : "text-slate-600 hover:bg-stone-100")}>
+                  {item.label}{matchesPath(loc.pathname, item.to) && <Check aria-hidden className="size-4 shrink-0" />}
+                </NavLink>)}</div>
+              </section>)}
+            </div>
           </nav>
         )}
         {inEnglish && (
@@ -165,7 +182,10 @@ export default function App() {
           <Route path="/books" element={<BooksHome />} />
           <Route path="/books/g/:id" element={<GrammarUnit />} />
           <Route path="/books/idioms" element={<IdiomsPage />} />
+          <Route path="/textbook" element={<TextbookHome />} />
+          <Route path="/textbook/:book/:page" element={<TextbookPage />} />
           <Route path="/chem" element={<ChemHome />} />
+          <Route path="/chem370" element={<Chem370 />} />
           <Route path="/chem/o/:no" element={<ChemChapter />} />
           <Route path="/chem/o/:no/:n" element={<ChemProblem />} />
           <Route path="/chem/b/:no" element={<ChemChapter book="b" />} />
@@ -176,6 +196,8 @@ export default function App() {
           <Route path="/chem/d/:id" element={<ChemDeck />} />
           <Route path="/chem/n" element={<NoteStudio />} />
           <Route path="/chem/n/:id" element={<NotePage />} />
+          <Route path="/handai2015" element={<Handai2015Home />} />
+          <Route path="/handai2015/:id" element={<Handai2015Page />} />
           <Route path="/eju" element={<EjuList />} />
           <Route path="/eju/:idx" element={<EjuLecturePage />} />
           <Route path="/jitan" element={<JitanHome />} />

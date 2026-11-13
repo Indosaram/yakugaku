@@ -46,7 +46,7 @@ Unless you [don't take] the medicine, you won't get better. || Unless you [take]
 
 :::steps 접속사 빈칸 3초 풀이법
 1. 뒤의 동사 유무 스캔 | 빈칸 뒤(쉼표 전까지)에 시제가 있는 동사가 있으면 접속사, 명사만 있으면 전치사를 남깁니다. | 동사 있음 = 접속사
-2. 앞뒤 분위기 화살표 비교 | 앞뒤가 순방향(원인→결과)이면 because, 역방향(칭찬↔단점)이면 although/despite를 고릅니다. | 강하다 ↔ 안전하다 = although
+2. 앞뒤 분위기 화살표 비교 | 앞뒤가 순방향(원인→결과)이면 because, 역방향(칭찬⇄단점)이면 although/despite를 고릅니다. | 강하다 ⇄ 안전하다 = although
 3. 짝꿍 단어 찾기 | both ~ and, either ~ or, neither ~ nor, not A but B 짝을 확인합니다. | neither A nor B
 :::`,
   quiz: [
